@@ -11,6 +11,8 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/devices")
 public class DeviceController {
@@ -58,6 +60,20 @@ public class DeviceController {
         @Valid @RequestBody Device device) {
 
         Device updatedDevice = deviceService.updateDevice(ip, device);
+
+        if (updatedDevice == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(updatedDevice);
+    }
+
+    @PatchMapping("/{ip}")
+    public ResponseEntity<Device> patchDevice(
+        @PathVariable String ip,
+        @RequestBody Map<String, Object> updates) {
+
+        Device updatedDevice = deviceService.patchDevice(ip, updates);
 
         if (updatedDevice == null) {
             return ResponseEntity.notFound().build();

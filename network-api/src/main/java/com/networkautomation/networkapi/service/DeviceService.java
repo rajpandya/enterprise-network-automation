@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class DeviceService {
@@ -49,6 +50,33 @@ public class DeviceService {
         existingDevice.setStatus(updatedDevice.getStatus());
         existingDevice.setLatency(updatedDevice.getLatency());
         existingDevice.setDeviceType(updatedDevice.getDeviceType());
+
+        return existingDevice;
+    }
+
+    public Device patchDevice(String ip, Map<String, Object> updates) {
+
+        Device existingDevice = getDeviceByIp(ip);
+
+        if (existingDevice == null) {
+            return null;
+        }
+
+        if (updates.containsKey("hostname")) {
+            existingDevice.setHostname((String) updates.get("hostname"));
+        }
+
+        if (updates.containsKey("status")) {
+            existingDevice.setStatus((String) updates.get("status"));
+        }
+
+        if (updates.containsKey("latency")) {
+            existingDevice.setLatency((Integer) updates.get("latency"));
+        }
+
+        if (updates.containsKey("deviceType")) {
+            existingDevice.setDeviceType((String) updates.get("deviceType"));
+        }
 
         return existingDevice;
     }
