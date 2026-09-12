@@ -16,6 +16,9 @@ public class DeviceService {
     );
 
     public Device getDeviceByIp(String ip) {
-        return devices.get(0);
+        return devices.stream()
+            .filter(device -> device.getIp().equals(ip))
+            .findFirst()
+            .orElse(null);
     }
 }
