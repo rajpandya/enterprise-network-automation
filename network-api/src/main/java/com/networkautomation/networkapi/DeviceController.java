@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/devices")
 public class DeviceController {
@@ -37,9 +39,13 @@ public class DeviceController {
     }
 
     @PostMapping
-    public ResponseEntity<Device> createDevice(@RequestBody Device device) {
+    public ResponseEntity<Device> createDevice(@Valid @RequestBody Device device) {
 
         Device createdDevice = deviceService.createDevice(device);
+
+        if (createdDevice == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
