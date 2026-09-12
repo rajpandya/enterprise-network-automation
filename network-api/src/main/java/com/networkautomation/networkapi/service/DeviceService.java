@@ -36,4 +36,20 @@ public class DeviceService {
         devices.add(device);
         return device;
     }
+
+    public Device updateDevice(String ip, Device updatedDevice) {
+
+        Device existingDevice = getDeviceByIp(ip);
+
+        if (existingDevice == null) {
+            return null;
+        }
+
+        existingDevice.setHostname(updatedDevice.getHostname());
+        existingDevice.setStatus(updatedDevice.getStatus());
+        existingDevice.setLatency(updatedDevice.getLatency());
+        existingDevice.setDeviceType(updatedDevice.getDeviceType());
+
+        return existingDevice;
+    }
 }

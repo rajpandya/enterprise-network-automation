@@ -51,4 +51,18 @@ public class DeviceController {
                 .status(HttpStatus.CREATED)
                 .body(createdDevice);
     }
+
+    @PutMapping("/{ip}")
+    public ResponseEntity<Device> updateDevice(
+        @PathVariable String ip,
+        @Valid @RequestBody Device device) {
+
+        Device updatedDevice = deviceService.updateDevice(ip, device);
+
+        if (updatedDevice == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(updatedDevice);
+    }
 }
