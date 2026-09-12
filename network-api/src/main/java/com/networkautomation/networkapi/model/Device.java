@@ -49,4 +49,24 @@ public class Device {
     public String getDeviceType() {
         return deviceType;
     }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    public void setLatency(int latency) {
+        this.latency = latency;
+    }
+    
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
+    }
 }
