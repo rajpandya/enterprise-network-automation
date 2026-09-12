@@ -80,4 +80,16 @@ public class DeviceService {
 
         return existingDevice;
     }
+
+    public boolean deleteDevice(String ip) {
+
+        Device existingDevice = getDeviceByIp(ip);
+
+        if (existingDevice == null) {
+            return false;
+        }
+
+        devices.remove(existingDevice);
+        return true;
+    }
 }
