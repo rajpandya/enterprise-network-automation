@@ -28,6 +28,11 @@ public class DeviceService {
     }
 
     public Device createDevice(Device device) {
+
+        if (getDeviceByIp(device.getIp()) != null) {
+            return null;
+        }
+
         devices.add(device);
         return device;
     }
