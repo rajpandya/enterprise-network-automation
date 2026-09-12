@@ -1,4 +1,4 @@
-package com.networkautomation.exception;
+package com.networkautomation.networkapi.exception;
 
 public class ApiError {
 
