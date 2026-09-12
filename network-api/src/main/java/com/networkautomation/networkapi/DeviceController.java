@@ -3,6 +3,8 @@ package com.networkautomation.networkapi;
 import com.networkautomation.networkapi.model.Device;
 import com.networkautomation.networkapi.service.DeviceService;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,5 +31,10 @@ public class DeviceController {
         }
 
         return ResponseEntity.ok(device);
+    }
+
+    @GetMapping
+    public List<Device> getAllDevices() {
+        return deviceService.getAllDevices();
     }
 }

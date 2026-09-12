@@ -21,4 +21,8 @@ public class DeviceService {
             .findFirst()
             .orElse(null);
     }
+
+    public List<Device> getAllDevices() {
+        return devices;
+    }
 }
