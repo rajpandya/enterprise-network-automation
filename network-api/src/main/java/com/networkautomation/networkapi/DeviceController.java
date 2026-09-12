@@ -81,4 +81,17 @@ public class DeviceController {
 
         return ResponseEntity.ok(updatedDevice);
     }
+
+    @DeleteMapping("/{ip}")
+    public ResponseEntity<Void> deleteDevice(@PathVariable String ip) {
+
+        boolean deleted = deviceService.deleteDevice(ip);
+
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
 }
