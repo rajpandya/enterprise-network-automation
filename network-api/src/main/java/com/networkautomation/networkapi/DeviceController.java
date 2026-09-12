@@ -30,24 +30,13 @@ public class DeviceController {
 
     @GetMapping("/{ip}")
     public ResponseEntity<Device> getDevice(@PathVariable String ip) {
-
-        Device device = deviceService.getDeviceByIp(ip);
-
-        if (device == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(device);
+        return ResponseEntity.ok(deviceService.getDeviceByIp(ip));
     }
 
     @PostMapping
     public ResponseEntity<Device> createDevice(@Valid @RequestBody Device device) {
 
         Device createdDevice = deviceService.createDevice(device);
-
-        if (createdDevice == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -85,11 +74,7 @@ public class DeviceController {
     @DeleteMapping("/{ip}")
     public ResponseEntity<Void> deleteDevice(@PathVariable String ip) {
 
-        boolean deleted = deviceService.deleteDevice(ip);
-
-        if (!deleted) {
-            return ResponseEntity.notFound().build();
-        }
+        deviceService.deleteDevice(ip);
 
         return ResponseEntity.noContent().build();
     }

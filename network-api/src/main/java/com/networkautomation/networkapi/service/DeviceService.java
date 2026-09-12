@@ -1,5 +1,7 @@
 package com.networkautomation.networkapi.service;
 
+import com.networkautomation.networkapi.exception.DeviceNotFoundException;
+import com.networkautomation.networkapi.exception.DuplicateDeviceException;
 import com.networkautomation.networkapi.model.Device;
 import org.springframework.stereotype.Service;
 
@@ -25,13 +27,17 @@ public class DeviceService {
         return devices.stream()
                 .filter(device -> device.getIp().equals(ip))
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new DeviceNotFoundException(ip));
     }
 
     public Device createDevice(Device device) {
 
-        if (getDeviceByIp(device.getIp()) != null) {
-            return null;
+        boolean exists = devices.stream()
+            .anyMatch(existingDevice ->
+                existingDevice.getIp().equals(device.getIp()));
+
+        if (exists) {
+            throw new DuplicateDeviceException(device.getIp());
         }
 
         devices.add(device);
@@ -81,15 +87,10 @@ public class DeviceService {
         return existingDevice;
     }
 
-    public boolean deleteDevice(String ip) {
+    public void deleteDevice(String ip) {
 
         Device existingDevice = getDeviceByIp(ip);
 
-        if (existingDevice == null) {
-            return false;
-        }
-
         devices.remove(existingDevice);
-        return true;
     }
 }
