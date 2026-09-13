@@ -1,15 +1,14 @@
 package com.networkautomation.networkapi.service;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
 import com.networkautomation.networkapi.exception.DeviceNotFoundException;
 import com.networkautomation.networkapi.exception.DuplicateDeviceException;
 import com.networkautomation.networkapi.model.Device;
 import com.networkautomation.networkapi.repository.DeviceRepository;
-
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class DeviceService {

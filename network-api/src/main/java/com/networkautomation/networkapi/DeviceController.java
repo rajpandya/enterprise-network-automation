@@ -1,17 +1,25 @@
 package com.networkautomation.networkapi;
 
-import com.networkautomation.networkapi.model.Device;
-import com.networkautomation.networkapi.service.DeviceService;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.networkautomation.networkapi.model.Device;
+import com.networkautomation.networkapi.service.DeviceHealthCheckService;
+import com.networkautomation.networkapi.service.DeviceService;
 
 import jakarta.validation.Valid;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/devices")
@@ -19,8 +27,13 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    public DeviceController(DeviceService deviceService) {
+    private final DeviceHealthCheckService deviceHealthCheckService;
+
+    public DeviceController(
+        DeviceService deviceService,
+        DeviceHealthCheckService deviceHealthCheckService) {
         this.deviceService = deviceService;
+        this.deviceHealthCheckService = deviceHealthCheckService;
     }
 
     @GetMapping
@@ -77,6 +90,13 @@ public class DeviceController {
         deviceService.deleteDevice(ip);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health-check")
+    public ResponseEntity<List<Device>> checkAllDevices() {
+        return ResponseEntity.ok(
+            deviceHealthCheckService.checkAllDevices()
+        );
     }
 
 }
