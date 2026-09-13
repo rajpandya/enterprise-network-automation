@@ -3,6 +3,8 @@ package com.networkautomation.networkapi.service;
 import com.networkautomation.networkapi.exception.DeviceNotFoundException;
 import com.networkautomation.networkapi.exception.DuplicateDeviceException;
 import com.networkautomation.networkapi.model.Device;
+import com.networkautomation.networkapi.repository.DeviceRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,61 +14,45 @@ import java.util.Map;
 @Service
 public class DeviceService {
 
-    private final List<Device> devices = new ArrayList<>(List.of(
-            new Device("router-prod-01", "10.10.20.15", "ONLINE", 14, "Router"),
-            new Device("switch-prod-01", "10.10.20.20", "ONLINE", 8, "Switch"),
-            new Device("f5-prod-01", "10.10.20.25", "WARNING", 42, "Load Balancer"),
-            new Device("router-dev-01", "10.10.30.10", "OFFLINE", 0, "Router")
-    ));
+    private final DeviceRepository deviceRepository;
+
+    public DeviceService(DeviceRepository deviceRepository) {
+        this.deviceRepository = deviceRepository;
+    }
 
     public List<Device> getAllDevices() {
-        return devices;
+        return deviceRepository.findAll();
     }
 
     public Device getDeviceByIp(String ip) {
-        return devices.stream()
-                .filter(device -> device.getIp().equals(ip))
-                .findFirst()
-                .orElseThrow(() -> new DeviceNotFoundException(ip));
+        return deviceRepository.findById(ip)
+            .orElseThrow(() -> new DeviceNotFoundException(ip));
     }
 
     public Device createDevice(Device device) {
 
-        boolean exists = devices.stream()
-            .anyMatch(existingDevice ->
-                existingDevice.getIp().equals(device.getIp()));
-
-        if (exists) {
+        if (deviceRepository.existsById(device.getIp())) {
             throw new DuplicateDeviceException(device.getIp());
         }
 
-        devices.add(device);
-        return device;
+        return deviceRepository.save(device);
     }
 
     public Device updateDevice(String ip, Device updatedDevice) {
 
         Device existingDevice = getDeviceByIp(ip);
 
-        if (existingDevice == null) {
-            return null;
-        }
-
         existingDevice.setHostname(updatedDevice.getHostname());
         existingDevice.setStatus(updatedDevice.getStatus());
         existingDevice.setLatency(updatedDevice.getLatency());
         existingDevice.setDeviceType(updatedDevice.getDeviceType());
 
-        return existingDevice;
+        return deviceRepository.save(existingDevice);
     }
 
     public Device patchDevice(String ip, Map<String, Object> updates) {
 
         Device existingDevice = getDeviceByIp(ip);
-
-        if (existingDevice == null) {
-            return null;
-        }
 
         if (updates.containsKey("hostname")) {
             existingDevice.setHostname((String) updates.get("hostname"));
@@ -84,13 +70,13 @@ public class DeviceService {
             existingDevice.setDeviceType((String) updates.get("deviceType"));
         }
 
-        return existingDevice;
+        return deviceRepository.save(existingDevice);
     }
 
     public void deleteDevice(String ip) {
 
         Device existingDevice = getDeviceByIp(ip);
 
-        devices.remove(existingDevice);
+        deviceRepository.delete(existingDevice);
     }
 }
