@@ -1,12 +1,18 @@
 package com.networkautomation.networkapi.model;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
+@Entity
+@Table(name = "devices")
 public class Device {
 
     @NotBlank
     private String hostname;
 
+    @Id
     @NotBlank
     private String ip;
 
