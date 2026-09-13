@@ -1,28 +1,30 @@
 package com.networkautomation.networkapi;
 
-import com.networkautomation.networkapi.exception.DeviceNotFoundException;
-import com.networkautomation.networkapi.model.Device;
-import com.networkautomation.networkapi.service.DeviceService;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 import com.networkautomation.networkapi.exception.DeviceNotFoundException;
 import com.networkautomation.networkapi.exception.DuplicateDeviceException;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.mockito.Mockito.doThrow;
+import com.networkautomation.networkapi.model.Device;
+import com.networkautomation.networkapi.service.DeviceHealthCheckService;
+import com.networkautomation.networkapi.service.DeviceService;
 
 @WebMvcTest(DeviceController.class)
 class DeviceControllerTest {
@@ -32,6 +34,9 @@ class DeviceControllerTest {
 
     @MockitoBean
     private DeviceService deviceService;
+
+    @MockitoBean
+    private DeviceHealthCheckService deviceHealthCheckService;
 
     @Test
     void shouldReturnDeviceByIp() throws Exception {
@@ -329,4 +334,37 @@ class DeviceControllerTest {
             .value("Device not found for IP: " + ip));
     }
 
+    @Test
+    void shouldRunHealthCheck() throws Exception {
+
+        Device device1 = new Device(
+            "router-prod-01",
+            "10.10.20.15",
+            "OFFLINE",
+            0,
+            "Router"
+        );
+
+        Device device2 = new Device(
+            "local-mac",
+            "127.0.0.1",
+            "ONLINE",
+            1,
+            "Local Host"
+        );
+
+        given(deviceHealthCheckService.checkAllDevices())
+            .willReturn(List.of(device1, device2));
+
+        mockMvc.perform(get("/api/devices/health-check"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].hostname")
+                    .value("router-prod-01"))
+            .andExpect(jsonPath("$[0].status")
+                    .value("OFFLINE"))
+            .andExpect(jsonPath("$[1].hostname")
+                    .value("local-mac"))
+            .andExpect(jsonPath("$[1].status")
+                    .value("ONLINE"));
+    }
 }
