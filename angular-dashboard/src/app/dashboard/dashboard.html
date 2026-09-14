@@ -1,0 +1,51 @@
+<section class="device-section">
+  <h2>Device Inventory</h2>
+
+  <button (click)="loadDevices()">
+    Refresh Devices
+  </button>
+
+  <button type="button" (click)="runHealthCheck()">
+  Run Health Check
+</button>
+
+@if (isLoading) {
+  <p>Loading devices...</p>
+}
+
+@if (errorMessage) {
+  <p>{{ errorMessage }}</p>
+}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Hostname</th>
+        <th>IP Address</th>
+        <th>Status</th>
+        <th>Latency</th>
+        <th>Device Type</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (device of devices; track device.ip) {
+        <tr>
+          <td>{{ device.hostname }}</td>
+          <td>{{ device.ip }}</td>
+          <td>
+  <span
+    [class.online]="device.status === 'ONLINE'"
+    [class.offline]="device.status === 'OFFLINE'"
+    [class.unknown]="device.status !== 'ONLINE' && device.status !== 'OFFLINE'"
+  >
+    {{ device.status }}
+  </span>
+</td>
+          <td>{{ device.latency }} ms</td>
+          <td>{{ device.deviceType }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>

@@ -22,7 +22,10 @@ import com.networkautomation.networkapi.service.DeviceService;
 
 import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "http://localhost:4200"
+})
 @RestController
 @RequestMapping("/api/devices")
 public class DeviceController {
