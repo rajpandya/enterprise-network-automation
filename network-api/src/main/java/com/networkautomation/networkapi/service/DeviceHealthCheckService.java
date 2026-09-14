@@ -3,12 +3,10 @@ package com.networkautomation.networkapi.service;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 import org.springframework.stereotype.Service;
 
 import com.networkautomation.networkapi.model.Device;
-
 
 @Service
 public class DeviceHealthCheckService {
