@@ -1,252 +1,384 @@
-# Enterprise Network Automation Self-Service Platform**
+# Enterprise Network Automation Self-Service Platform
 
-## 1. Project Overview**
+## 1. Project Overview
 
-The Enterprise Network Automation Self-Service Platform is a portfolio project designed to demonstrate how modern enterprise applications can combine network automation, REST APIs, Java concurrency, Python automation, persistent data storage, and web-based self-service capabilities.
+The Enterprise Network Automation Self-Service Platform is a hands-on
+portfolio project demonstrating enterprise network automation, governed
+REST APIs, Java concurrency, Python automation, containerization,
+persistent storage, and web-based self-service capabilities.
 
-The application currently provides a centralized network device inventory where users can create, view, update, delete, and health-check network devices.
+The platform provides centralized network device inventory and health
+monitoring. Users can create, view, update, delete, and health-check
+network devices through reusable REST APIs and web interfaces.
 
-The project is being developed incrementally with an enterprise architecture in mind.
+### Current End-to-End Architecture
 
-The current implementation includes:
+``` text
+Angular Dashboard / API Client
+             |
+             | HTTPS
+             v
+MuleSoft Anypoint Platform
+Mule Gateway / CloudHub 2.0 Proxy
+             |
+             | HTTP
+             v
+Red Hat OpenShift Route
+             |
+             v
+Spring Boot REST API
+             |
+      DeviceController
+             |
+   +---------+------------------+
+   |                            |
+DeviceService          DeviceHealthCheckService
+   |                    CompletableFuture
+   |                    ThreadPoolTaskExecutor
+   +-------------+--------------+
+                 |
+          DeviceRepository
+                 |
+          Spring Data JPA
+                 |
+             Hibernate
+                 |
+             PostgreSQL
+                 |
+      PersistentVolumeClaim
+```
 
-* Java 21
+Python automation and the Next.js portal can consume the same Spring
+Boot REST API. The Angular dashboard has also been validated through the
+MuleSoft gateway path.
 
-* Spring Boot
+### Technology and Platform Summary
 
-* Spring Web REST APIs
+  -----------------------------------------------------------------------
+  Technology / Platform               Purpose in This Project
+  ----------------------------------- -----------------------------------
+  Java 21                             Core backend language and
+                                      concurrent network health checks
 
-* Spring Data JPA
+  Spring Boot                         REST API, business logic,
+                                      validation, exception handling, and
+                                      Actuator
 
-* Hibernate
+  Spring Data JPA / Hibernate         Persistence abstraction and ORM
 
-* PostgreSQL
+  PostgreSQL                          Persistent network device inventory
 
-* Java `CompletableFuture`
+  Python                              Network automation client and
+                                      device health checks
 
-* `ThreadPoolTaskExecutor`
+  Next.js / React / TypeScript        Self-service network automation
+                                      portal
 
-* Python network automation
+  Angular 22                          Network operations dashboard
 
-* Next.js
+  Maven                               Builds and tests the Spring Boot
+                                      application
 
-* React
+  Docker                              Containerizes the Spring Boot API
 
-* TypeScript
+  Docker Buildx                       Builds AMD64 images from Apple
+                                      Silicon
 
-* Maven
+  Docker Hub                          Stores and distributes the backend
+                                      container image used by OpenShift
 
-* Git and GitHub
+  Red Hat OpenShift                   Runs and manages Spring Boot and
+                                      PostgreSQL workloads
 
-Future phases will add:
+  MuleSoft Anypoint Platform          API management and gateway
+                                      configuration
 
-* Docker / OCI containers
+  Mule Gateway                        Proxies and governs API traffic
+                                      before it reaches OpenShift
 
-* Red Hat OpenShift
+  CloudHub 2.0                        Hosts the MuleSoft proxy
+                                      application
 
-* OpenShift Deployment, Service, Route, ConfigMap, Secret, and PVC
+  Git / GitHub                        Source control, branching,
+                                      collaboration, and portfolio
+                                      repository
+  -----------------------------------------------------------------------
 
-* Spring Boot Actuator readiness and liveness probes
+### Why the External Platforms Are Used
 
-* Angular
+**Docker Hub** is the container registry. The Spring Boot application is
+packaged into a Docker image, published to Docker Hub, and pulled by
+OpenShift for deployment.
 
-* MuleSoft API Gateway and integration
+**Red Hat OpenShift** is the container orchestration platform. It runs
+the Spring Boot API and PostgreSQL, exposes the API through an OpenShift
+Route, manages runtime configuration, and provides persistent storage
+and health probes.
 
-* ServiceNow integration
+**MuleSoft Anypoint Platform** provides the API management layer. A Mule
+Gateway proxy deployed to CloudHub 2.0 accepts client traffic and
+forwards it to the Spring Boot API running on OpenShift.
 
-* Kubernetes and Helm
+### Application Endpoints
 
-* Terraform
+  --------------------------------------------------------------------------------------------------------------------------------------------
+  Layer                   Purpose                 Endpoint
+  ----------------------- ----------------------- --------------------------------------------------------------------------------------------
+  Spring Boot Local       Local backend API       `http://localhost:8080/api/devices`
 
-* AWS
+  Spring Boot Local       Local application       `http://localhost:8080/actuator/health`
+  Actuator                health                  
 
-* CI/CD
+  Next.js Local           Self-service portal     `http://localhost:3000`
 
-* Additional network automation integrations
+  Angular Local           Network operations      `http://localhost:4200`
+                          dashboard               
 
----
+  OpenShift Route         Direct deployed backend `http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices`
+                          API                     
 
-# 2. Business Concept**
+  MuleSoft CloudHub 2.0   Managed API gateway     `https://network-api-proxy-hkjv8j.5sc6y6-1.usa-e2.cloudhub.io/api/devices`
+                          entry point             
+  --------------------------------------------------------------------------------------------------------------------------------------------
 
-Large enterprises often manage thousands of routers, switches, load balancers, DNS services, IP addresses, and other network infrastructure components.
+### REST API Endpoints
 
-Many network operations still depend on manual processes, scripts, tickets, and multiple management platforms.
+``` text
+GET     /api/devices
+GET     /api/devices/{ip}
+POST    /api/devices
+PUT     /api/devices/{ip}
+PATCH   /api/devices/{ip}
+DELETE  /api/devices/{ip}
+GET     /api/devices/health-check
+```
 
-This project demonstrates how a self-service automation platform could provide a centralized interface for network operations.
+### Access Paths
+
+``` text
+LOCAL DEVELOPMENT
+Client -> localhost:8080 -> Spring Boot -> PostgreSQL
+
+DIRECT OPENSHIFT TESTING
+Client -> OpenShift Route -> Spring Boot -> PostgreSQL
+
+INTEGRATED / GATEWAY PATH
+Angular / Client -> MuleSoft CloudHub 2.0 -> OpenShift Route
+                 -> Spring Boot -> JPA / Hibernate -> PostgreSQL
+```
+
+### Public Repository Security
+
+Public application endpoints may be documented for demonstration
+purposes, but credentials and secrets must never be committed. Do not
+commit database passwords, MuleSoft credentials, OpenShift login tokens,
+API keys, `.env.local`, real OpenShift Secret values, or local Python
+virtual environments. Use environment variables, OpenShift Secrets, and
+example configuration files instead.
+
+### Implemented Technology
+
+-   Java 21 / Spring Boot
+-   Spring Web REST APIs
+-   Spring Data JPA / Hibernate
+-   PostgreSQL
+-   Java `CompletableFuture` and `ThreadPoolTaskExecutor`
+-   Python network automation
+-   Next.js / React / TypeScript
+-   Angular 22, `HttpClient`, RxJS, DI, SSR, and hydration
+-   Docker / OCI containerization and Docker Buildx
+-   Docker Hub container registry
+-   Red Hat OpenShift Deployment, Pod, Service, Route, ConfigMap,
+    Secret, and PVC
+-   PostgreSQL on OpenShift with persistent storage
+-   Spring Boot Actuator readiness and liveness probes
+-   MuleSoft Anypoint API Manager
+-   Mule Gateway proxy on CloudHub 2.0
+-   End-to-end MuleSoft-to-OpenShift API routing
+-   Maven
+-   Git and GitHub
+
+Next major phases may add MuleSoft gateway policies, ServiceNow
+integration, Terraform/AWS infrastructure, CI/CD automation, Helm
+packaging, and additional network automation integrations.
+
+------------------------------------------------------------------------
+
+# 2. Business Concept
+
+Large enterprises often manage thousands of routers, switches, load
+balancers, DNS services, IP addresses, and other network infrastructure
+components.
+
+Many network operations still depend on manual processes, scripts,
+tickets, and multiple management platforms.
+
+This project demonstrates how a self-service automation platform could
+provide a centralized interface for network operations.
 
 A user can currently:
 
-* View registered network devices
+-   View registered network devices
 
-* Add devices
+-   Add devices
 
-* Update device information
+-   Update device information
 
-* Delete devices
+-   Delete devices
 
-* Run network health checks
+-   Run network health checks
 
-* See whether devices are online or offline
+-   See whether devices are online or offline
 
-* Store network inventory persistently
+-   Store network inventory persistently
 
-* Run network checks through Java or Python automation
+-   Run network checks through Java or Python automation
 
-The long-term goal is to evolve the application into an enterprise network automation platform where internal and external systems can interact through governed APIs.
+The long-term goal is to evolve the application into an enterprise
+network automation platform where internal and external systems can
+interact through governed APIs.
 
----
+------------------------------------------------------------------------
 
-# 3. Current Architecture**
+# 3. Current Architecture
 
-The current application contains multiple layers.
+The project now includes two web frontends, a reusable Spring Boot API,
+Java and Python automation, an OpenShift-hosted backend/database
+environment, and a MuleSoft API gateway layer.
 
-```text
-
-                Next.js Web Application
-
-                         |
-
-                         |
-
-                      REST API
-
-                         |
-
-                         v
-
-                Spring Boot Backend
-
-                         |
-
-                  DeviceController
-
-                         |
-
-              \-----------------------
-
-              |                     |
-
-       DeviceService       DeviceHealthCheckService
-
-              |                     |
-
-              |              CompletableFuture
-
-              |                     |
-
-              |            ThreadPoolTaskExecutor
-
-              |                     |
-
-              |             Concurrent Device Checks
-
-              |                     |
-
-              \-----------+-----------
-
-                         |
-
-                  DeviceRepository
-
-                         |
-
-                  Spring Data JPA
-
-                         |
-
-                     Hibernate
-
-                         |
-
-                     PostgreSQL
-
+``` text
+Next.js Portal / Angular Dashboard
+               |
+               | HTTPS / REST
+               v
+       MuleSoft CloudHub 2.0
+         network-api-proxy
+               |
+               | HTTP / REST
+               v
+         OpenShift Route
+               |
+               v
+      network-api-service
+               |
+               v
+       Spring Boot API Pod
+               |
+        DeviceController
+               |
+   +-----------+------------------+
+   |                              |
+DeviceService          DeviceHealthCheckService
+   |                     CompletableFuture
+   |                     ThreadPoolTaskExecutor
+   +-----------+------------------+
+               |
+       DeviceRepository
+               |
+       Spring Data JPA
+               |
+           Hibernate
+               |
+               v
+    network-postgres Service
+               |
+               v
+       PostgreSQL Pod
+               |
+               v
+    PersistentVolumeClaim
 ```
 
-Python provides an additional automation client:
+Python provides an additional automation client that consumes the same
+REST API. The MuleSoft gateway path has been validated end to end with
+HTTP 200 and live PostgreSQL-backed device inventory.
 
-```text
+------------------------------------------------------------------------
 
-Python Automation
+# 4. Application Layers
 
-       |
-
-       | GET / PATCH
-
-       v
-
-Spring Boot REST API
-
-       |
-
-DeviceController
-
-       |
-
-DeviceService
-
-       |
-
-DeviceRepository
-
-       |
-
-PostgreSQL
-
-```
-
----
-
-# 4. Application Layers**
-
-## Next.js Frontend**
+## Next.js Frontend
 
 The Next.js frontend provides the user interface.
 
 Current capabilities include:
 
-* Display device inventory
+-   Display device inventory
 
-* Add devices
+-   Add devices
 
-* Edit devices
+-   Edit devices
 
-* Delete devices
+-   Delete devices
 
-* Run health checks
+-   Run health checks
 
-* Display ONLINE, OFFLINE, and UNKNOWN states
+-   Display ONLINE, OFFLINE, and UNKNOWN states
 
-* Display latency
+-   Display latency
 
-* Display backend errors
+-   Display backend errors
 
-* Show loading state while health checks are running
+-   Show loading state while health checks are running
 
 The frontend currently runs locally on:
 
-```text
+``` text
 
 http://localhost:3000
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Spring Boot Backend**
+## Angular Operations Dashboard
+
+The Angular 22 dashboard provides an operations-focused view of device
+inventory and health data.
+
+Current capabilities include:
+
+-   Display network inventory returned by Spring Boot
+-   Calculate total, online, and offline device counts
+-   Calculate average latency
+-   Refresh inventory using Angular event binding
+-   Invoke the Java multithreaded health-check endpoint
+-   Display loading and error states
+-   Apply conditional status classes
+-   Use Angular services, dependency injection, `HttpClient`, RxJS, and
+    Observables
+-   Preserve SSR and hydration support
+-   Use environment-based backend API configuration
+-   Connect through MuleSoft CloudHub 2.0 to the OpenShift Route
+-   Produce a validated production build with `ng build`
+
+The Angular development server runs locally on:
+
+``` text
+http://localhost:4200
+```
+
+The Angular dashboard is validated against the MuleSoft CloudHub 2.0
+proxy, which forwards requests to the Spring Boot API through the
+OpenShift Route.
+
+------------------------------------------------------------------------
+
+## Spring Boot Backend
 
 Spring Boot provides the REST API and business logic.
 
-The backend currently runs locally on:
+The backend can run locally on:
 
-```text
-
+``` text
 http://localhost:8080
-
 ```
+
+The interview-ready deployment is also running in OpenShift and exposed
+through an OpenShift Route.
 
 Main layers:
 
-```text
+``` text
 
 Controller
 
@@ -261,64 +393,62 @@ Repository
     |
 
 Database
-
 ```
 
----
+------------------------------------------------------------------------
 
-## DeviceController**
+## DeviceController
 
 `DeviceController` exposes REST endpoints to clients such as:
 
-* Next.js
+-   Next.js
 
-* Python
+-   Python
 
-* curl
+-   curl
 
-* Web browsers
+-   Web browsers
 
-* Future Angular applications
+-   Angular operations dashboard
 
-* Future MuleSoft integrations
+-   Future MuleSoft integrations
 
----
+------------------------------------------------------------------------
 
-## DeviceService**
+## DeviceService
 
 `DeviceService` contains device business logic including:
 
-* Retrieve devices
+-   Retrieve devices
 
-* Retrieve a device by IP address
+-   Retrieve a device by IP address
 
-* Create a device
+-   Create a device
 
-* Update a device
+-   Update a device
 
-* Partially update a device
+-   Partially update a device
 
-* Delete a device
+-   Delete a device
 
-* Check for duplicate devices
+-   Check for duplicate devices
 
----
+------------------------------------------------------------------------
 
-## DeviceRepository**
+## DeviceRepository
 
 `DeviceRepository` is the persistence repository.
 
 It extends:
 
-```java
+``` java
 
 JpaRepository<Device, String>
-
 ```
 
 The persistence stack is:
 
-```text
+``` text
 
 DeviceRepository
 
@@ -341,18 +471,18 @@ JDBC
        |
 
 PostgreSQL
-
 ```
 
-Spring Data JPA provides repository abstractions while Hibernate acts as the JPA ORM implementation.
+Spring Data JPA provides repository abstractions while Hibernate acts as
+the JPA ORM implementation.
 
----
+------------------------------------------------------------------------
 
-# 5. Device Model**
+# 5. Device Model
 
 The current device model contains:
 
-```text
+``` text
 
 hostname
 
@@ -363,14 +493,13 @@ status
 latency
 
 deviceType
-
 ```
 
 The IP address currently acts as the device identifier.
 
 Example:
 
-```json
+``` json
 
 {
 
@@ -385,60 +514,54 @@ Example:
   "deviceType": "Router"
 
 }
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 6. REST API Endpoints**
+# 6. REST API Endpoints
 
-## Retrieve All Devices**
+## Retrieve All Devices
 
-```text
+``` text
 
 GET /api/devices
-
 ```
 
 Example:
 
-```bash
+``` bash
 
 curl http://localhost:8080/api/devices
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Retrieve One Device**
+## Retrieve One Device
 
-```text
+``` text
 
 GET /api/devices/{ip}
-
 ```
 
 Example:
 
-```bash
+``` bash
 
 curl http://localhost:8080/api/devices/127.0.0.1
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Create Device**
+## Create Device
 
-```text
+``` text
 
 POST /api/devices
-
 ```
 
 Example:
 
-```bash
+``` bash
 
 curl -X POST http://localhost:8080/api/devices \\
 
@@ -457,74 +580,69 @@ curl -X POST http://localhost:8080/api/devices \\
     "deviceType": "Local Host"
 
   }'
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Update Device**
+## Update Device
 
-```text
+``` text
 
 PUT /api/devices/{ip}
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Partially Update Device**
+## Partially Update Device
 
-```text
+``` text
 
 PATCH /api/devices/{ip}
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Delete Device**
+## Delete Device
 
-```text
+``` text
 
 DELETE /api/devices/{ip}
-
 ```
 
 Example:
 
-```bash
+``` bash
 
 curl -X DELETE http://localhost:8080/api/devices/127.0.0.1
-
 ```
 
----
+------------------------------------------------------------------------
 
-## Run Health Check**
+## Run Health Check
 
-```text
+``` text
 
 GET /api/devices/health-check
-
 ```
 
 Example:
 
-```bash
+``` bash
 
 curl http://localhost:8080/api/devices/health-check
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 7. Java Concurrent Health Check**
+# 7. Java Concurrent Health Check
 
-One of the important backend features is concurrent device health checking.
+One of the important backend features is concurrent device health
+checking.
 
-Instead of checking devices sequentially, the application uses Java concurrency.
+Instead of checking devices sequentially, the application uses Java
+concurrency.
 
-```text
+``` text
 
 GET /api/devices/health-check
 
@@ -575,30 +693,30 @@ DeviceRepository
         |
 
 PostgreSQL
-
 ```
 
 This demonstrates:
 
-* Java multithreading
+-   Java multithreading
 
-* Asynchronous execution
+-   Asynchronous execution
 
-* Thread pools
+-   Thread pools
 
-* `CompletableFuture`
+-   `CompletableFuture`
 
-* Concurrent network operations
+-   Concurrent network operations
 
----
+------------------------------------------------------------------------
 
-# 8. Python Network Automation**
+# 8. Python Network Automation
 
 The project also contains Python-based automation.
 
-The Python script retrieves devices from the Spring Boot API, performs network checks, and updates the backend.
+The Python script retrieves devices from the Spring Boot API, performs
+network checks, and updates the backend.
 
-```text
+``` text
 
 Python
 
@@ -633,18 +751,18 @@ Spring Boot
    |
 
 PostgreSQL
-
 ```
 
-This demonstrates that Spring Boot acts as a reusable API platform rather than being tied only to the Next.js frontend.
+This demonstrates that Spring Boot acts as a reusable API platform
+rather than being tied only to the Next.js frontend.
 
----
+------------------------------------------------------------------------
 
-# 9. Repository Structure**
+# 9. Repository Structure
 
 The planned repository structure is:
 
-```text
+``` text
 
 enterprise-network-automation/
 
@@ -670,7 +788,7 @@ enterprise-network-automation/
 
 |-- angular-dashboard/
 
-|   Future Angular operations dashboard
+|   Angular network operations dashboard
 
 |
 
@@ -695,18 +813,17 @@ enterprise-network-automation/
 `-- docs/
 
     Architecture and project documentation
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 10. Development Environment**
+# 10. Development Environment
 
 The project was originally developed on an Apple Silicon Mac.
 
 Current development environment:
 
-```text
+``` text
 
 macOS 26.6.2
 
@@ -718,315 +835,294 @@ Python 3.14
 
 Node.js 26
 
-npm
+npm 11
+
+Angular CLI 22
 
 Maven
 
 PostgreSQL 17
 
+Docker Desktop / Docker Buildx
+
+OpenShift CLI (`oc`)
+
 Git
 
 VS Code
-
 ```
 
-Exact versions are not necessarily required as long as compatible supported versions are installed.
+Exact versions are not necessarily required as long as compatible
+supported versions are installed.
 
----
+------------------------------------------------------------------------
 
-# 11. Mac Development Setup**
+# 11. Mac Development Setup
 
-## Install Apple Command Line Tools**
+## Install Apple Command Line Tools
 
 Check whether they are installed:
 
-```bash
+``` bash
 
 xcode-select -p
-
 ```
 
 If they are not installed:
 
-```bash
+``` bash
 
 xcode-select --install
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 12. Install Homebrew**
+# 12. Install Homebrew
 
 Check:
 
-```bash
+``` bash
 
 brew --version
-
 ```
 
 If Homebrew is already installed, continue to the next step.
 
-Homebrew is used to install development dependencies such as Java, PostgreSQL, Maven, and Node.js.
+Homebrew is used to install development dependencies such as Java,
+PostgreSQL, Maven, and Node.js.
 
----
+------------------------------------------------------------------------
 
-# 13. Install Git**
+# 13. Install Git
 
 Check:
 
-```bash
+``` bash
 
 git --version
-
 ```
 
 Git is used for source control and GitHub integration.
 
----
+------------------------------------------------------------------------
 
-# 14. Install Java 21**
+# 14. Install Java 21
 
 Install:
 
-```bash
+``` bash
 
 brew install openjdk@21
-
 ```
 
 Verify:
 
-```bash
+``` bash
 
 java -version
-
 ```
 
 Expected major version:
 
-```text
+``` text
 
 21
-
 ```
 
 Check Java compiler:
 
-```bash
+``` bash
 
 javac -version
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 15. Install Maven**
+# 15. Install Maven
 
 Install:
 
-```bash
+``` bash
 
 brew install maven
-
 ```
 
 Verify:
 
-```bash
+``` bash
 
 mvn -version
-
 ```
 
-The Spring Boot project also includes the Maven Wrapper, so Maven commands can normally be executed with:
+The Spring Boot project also includes the Maven Wrapper, so Maven
+commands can normally be executed with:
 
-```bash
+``` bash
 
 ./mvnw
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 16. Install Node.js and npm**
+# 16. Install Node.js and npm
 
 Install Node.js:
 
-```bash
+``` bash
 
 brew install node
-
 ```
 
 Verify:
 
-```bash
+``` bash
 
 node --version
 
 npm --version
-
 ```
 
 Node.js is required for the Next.js application.
 
----
+------------------------------------------------------------------------
 
-# 17. Install Python**
+# 17. Install Python
 
 Install Python:
 
-```bash
+``` bash
 
 brew install python
-
 ```
 
 Verify:
 
-```bash
+``` bash
 
 python3 --version
-
 ```
 
 Check its location:
 
-```bash
+``` bash
 
 which python3
-
 ```
 
 On Apple Silicon with Homebrew it may appear under:
 
-```text
+``` text
 
 /opt/homebrew/bin/python3
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 18. Install PostgreSQL**
+# 18. Install PostgreSQL
 
 Install PostgreSQL 17:
 
-```bash
+``` bash
 
 brew install postgresql@17
-
 ```
 
 Start PostgreSQL:
 
-```bash
+``` bash
 
 brew services start postgresql@17
-
 ```
 
 Check service status:
 
-```bash
+``` bash
 
 brew services list
-
 ```
 
 Connect to PostgreSQL:
 
-```bash
+``` bash
 
 psql postgres
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 19. Create PostgreSQL Database**
+# 19. Create PostgreSQL Database
 
 Create the application database:
 
-```sql
+``` sql
 
 CREATE DATABASE networkdb;
-
 ```
 
 Create an application user:
 
-```sql
+``` sql
 
 CREATE USER networkapp WITH PASSWORD 'your-local-development-password';
-
 ```
 
 Grant access:
 
-```sql
+``` sql
 
 GRANT ALL PRIVILEGES ON DATABASE networkdb TO networkapp;
-
 ```
 
 If required, connect to the database and grant schema permissions.
 
-```sql
+``` sql
 
 \c networkdb
-
 ```
 
 Then:
 
-```sql
+``` sql
 
 GRANT ALL ON SCHEMA public TO networkapp;
-
 ```
 
 Do not commit real production passwords to GitHub.
 
----
+------------------------------------------------------------------------
 
-# 20. Clone the Repository**
+# 20. Clone the Repository
 
 Clone:
 
-```bash
+``` bash
 
 git clone https://github.com/rajpandya/enterprise-network-automation.git
-
 ```
 
 Enter the repository:
 
-```bash
+``` bash
 
 cd enterprise-network-automation
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 21. Configure Spring Boot Database**
+# 21. Configure Spring Boot Database
 
 Navigate to:
 
-```bash
+``` bash
 
 cd network-api
-
 ```
 
 The application requires PostgreSQL configuration.
 
 For local development, the application needs values equivalent to:
 
-```properties
+``` properties
 
 spring.datasource.url=jdbc:postgresql://localhost:5432/networkdb
 
@@ -1039,46 +1135,43 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 
 spring.jpa.properties.hibernate.format_sql=true
-
 ```
 
-For public or production deployments, credentials should be supplied through environment variables rather than committed to source control.
+For public or production deployments, credentials should be supplied
+through environment variables rather than committed to source control.
 
 Planned configuration:
 
-```properties
+``` properties
 
 spring.datasource.url=${DB_URL}
 
 spring.datasource.username=${DB_USERNAME}
 
 spring.datasource.password=${DB_PASSWORD}
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 22. Build Spring Boot**
+# 22. Build Spring Boot
 
 From:
 
-```text
+``` text
 
 enterprise-network-automation/network-api
-
 ```
 
 run:
 
-```bash
+``` bash
 
 ./mvnw clean package
-
 ```
 
 This:
 
-```text
+``` text
 
 cleans previous build output
 
@@ -1097,106 +1190,97 @@ packages application
         |
 
 creates JAR
-
 ```
 
 The generated JAR is placed under:
 
-```text
+``` text
 
 target/
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 23. Compile Without Running Full Package**
+# 23. Compile Without Running Full Package
 
 Maven can compile the application with:
 
-```bash
+``` bash
 
 ./mvnw compile
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 24. Run Backend Tests**
+# 24. Run Backend Tests
 
 Run:
 
-```bash
+``` bash
 
 ./mvnw test
-
 ```
 
 For a clean test run:
 
-```bash
+``` bash
 
 ./mvnw clean test
-
 ```
 
-The project includes Spring Boot and MockMvc tests for REST API functionality.
+The project includes Spring Boot and MockMvc tests for REST API
+functionality.
 
----
+------------------------------------------------------------------------
 
-# 25. Run Spring Boot Locally**
+# 25. Run Spring Boot Locally
 
 From:
 
-```text
+``` text
 
 network-api/
-
 ```
 
 run:
 
-```bash
+``` bash
 
 ./mvnw spring-boot:run
-
 ```
 
 Spring Boot starts its embedded Tomcat server.
 
 The backend should become available at:
 
-```text
+``` text
 
 http://localhost:8080
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 26. Verify Backend**
+# 26. Verify Backend
 
 Open:
 
-```text
+``` text
 
 http://localhost:8080/api/devices
-
 ```
 
 or run:
 
-```bash
+``` bash
 
 curl http://localhost:8080/api/devices
-
 ```
 
 You should receive JSON.
 
 Example:
 
-```json
+``` json
 
 [
 
@@ -1215,32 +1299,29 @@ Example:
   }
 
 ]
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 27. Run Health Check Directly**
+# 27. Run Health Check Directly
 
 Use:
 
-```bash
+``` bash
 
 curl http://localhost:8080/api/devices/health-check
-
 ```
 
 or open:
 
-```text
+``` text
 
 http://localhost:8080/api/devices/health-check
-
 ```
 
 Flow:
 
-```text
+``` text
 
 Browser / curl
 
@@ -1279,234 +1360,213 @@ PostgreSQL
       |
 
 JSON response
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 28. Set Up Python Automation**
+# 28. Set Up Python Automation
 
 From the repository root:
 
-```bash
+``` bash
 
 cd python-automation
-
 ```
 
 Create a Python virtual environment:
 
-```bash
+``` bash
 
 python3 -m venv .venv
-
 ```
 
 Activate it:
 
-```bash
+``` bash
 
 source .venv/bin/activate
-
 ```
 
 Install required package:
 
-```bash
+``` bash
 
 pip install requests
-
 ```
 
 The project should eventually maintain dependencies in:
 
-```text
+``` text
 
 requirements.txt
-
 ```
 
 Then dependencies can be installed with:
 
-```bash
+``` bash
 
 pip install -r requirements.txt
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 29. Run Python Network Automation**
+# 29. Run Python Network Automation
 
 Make sure Spring Boot is already running on port 8080.
 
 Then:
 
-```bash
+``` bash
 
 python3 device_check.py
-
 ```
 
 The Python script communicates with:
 
-```text
+``` text
 
 http://localhost:8080/api/devices
-
 ```
 
-It retrieves devices, performs health checks, and updates device information through the Spring Boot REST API.
+It retrieves devices, performs health checks, and updates device
+information through the Spring Boot REST API.
 
----
+------------------------------------------------------------------------
 
-# 30. Set Up Next.js Frontend**
+# 30. Set Up Next.js Frontend
 
 From the repository root:
 
-```bash
+``` bash
 
 cd nextjs-portal
-
 ```
 
 Install JavaScript dependencies:
 
-```bash
+``` bash
 
 npm install
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 31. Configure Next.js API URL**
+# 31. Configure Next.js API URL
 
 Create:
 
-```text
+``` text
 
 nextjs-portal/.env.local
-
 ```
 
 Add:
 
-```text
+``` text
 
 NEXT_PUBLIC_API_URL=http://localhost:8080
-
 ```
 
 This allows the frontend to communicate with the Spring Boot backend.
 
 Do not commit `.env.local` if it later contains sensitive configuration.
 
----
+------------------------------------------------------------------------
 
-# 32. Run Next.js Locally**
+# 32. Run Next.js Locally
 
 Start the development server:
 
-```bash
+``` bash
 
 npm run dev
-
 ```
 
 The frontend should be available at:
 
-```text
+``` text
 
 http://localhost:3000
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 33. Local Application Startup Order**
+# 33. Local Application Startup Order
 
 For normal development, start the services in this order.
 
-### Terminal 1: PostgreSQL**
+### Terminal 1: PostgreSQL
 
 Verify PostgreSQL is running:
 
-```bash
+``` bash
 
 brew services list
-
 ```
 
 If necessary:
 
-```bash
+``` bash
 
 brew services start postgresql@17
-
 ```
 
----
+------------------------------------------------------------------------
 
-### Terminal 2: Spring Boot**
+### Terminal 2: Spring Boot
 
-```bash
+``` bash
 
 cd \~/Projects/enterprise-network-automation/network-api
 
 ./mvnw spring-boot:run
-
 ```
 
 Verify:
 
-```text
+``` text
 
 http://localhost:8080/api/devices
-
 ```
 
----
+------------------------------------------------------------------------
 
-### Terminal 3: Next.js**
+### Terminal 3: Next.js
 
-```bash
+``` bash
 
 cd \~/Projects/enterprise-network-automation/nextjs-portal
 
 npm run dev
-
 ```
 
 Open:
 
-```text
+``` text
 
 http://localhost:3000
-
 ```
 
----
+------------------------------------------------------------------------
 
-### Optional Terminal 4: Python Automation**
+### Optional Terminal 4: Python Automation
 
-```bash
+``` bash
 
 cd \~/Projects/enterprise-network-automation/python-automation
 
 source .venv/bin/activate
 
 python3 device_check.py
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 34. Complete Local Runtime Architecture**
+# 34. Complete Local Runtime Architecture
 
 When everything is running locally:
 
-```text
+``` text
 
 Browser
 
@@ -1541,12 +1601,11 @@ Spring Data JPA / Hibernate
 PostgreSQL
 
 localhost:5432
-
 ```
 
 Python can independently call Spring Boot:
 
-```text
+``` text
 
 Python
 
@@ -1563,16 +1622,15 @@ Spring Boot :8080
    v
 
 PostgreSQL
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 35. CORS**
+# 35. CORS
 
 Next.js and Spring Boot run on different origins:
 
-```text
+``` text
 
 Next.js
 
@@ -1581,70 +1639,85 @@ http://localhost:3000
 Spring Boot
 
 http://localhost:8080
-
 ```
 
-Because the ports are different, browsers treat these as different origins.
+Because the ports are different, browsers treat these as different
+origins.
 
-Spring Boot therefore needs CORS configuration allowing the frontend origin.
+Spring Boot therefore needs CORS configuration allowing the frontend
+origin.
 
-The current development configuration allows:
+The current development configuration allows both local web
+applications:
 
-```text
-
-http://localhost:3000
-
+``` text
+http://localhost:3000   # Next.js
+http://localhost:4200   # Angular
 ```
 
-Production CORS configuration will later be centralized and controlled through environment-specific settings.
+During Angular/OpenShift integration, the browser returned HTTP 403
+because `http://localhost:4200` was not initially included in the Spring
+Boot CORS configuration. The controller was updated to allow both
+origins and a new backend container image was deployed to OpenShift.
 
----
+Example development configuration:
 
-# 36. Build Next.js**
+``` java
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "http://localhost:4200"
+})
+```
+
+For a production implementation, CORS should be centralized and driven
+by environment-specific configuration rather than controller-level
+hardcoding.
+
+------------------------------------------------------------------------
+
+# 36. Build Next.js
 
 Before committing or deploying frontend changes, run:
 
-```bash
+``` bash
 
 npm run build
-
 ```
 
-This performs the production Next.js build and catches TypeScript and build-time errors.
+This performs the production Next.js build and catches TypeScript and
+build-time errors.
 
----
+------------------------------------------------------------------------
 
-# 37. Run Complete Project Validation**
+# 37. Run Complete Project Validation
 
 Before pushing major changes to GitHub, run backend tests:
 
-```bash
+``` bash
 
 cd network-api
 
 ./mvnw clean test
-
 ```
 
 Then run frontend build:
 
-```bash
+``` bash
 
 cd ../nextjs-portal
 
 npm run build
-
 ```
 
 Both should complete successfully.
 
----
+------------------------------------------------------------------------
 
-# 38. Important Git Ignore Rules**
+# 38. Important Git Ignore Rules
 
 The following development files should not be committed:
 
-```text
+``` text
 
 .venv/
 
@@ -1657,80 +1730,73 @@ node_modules/
 .env.local
 
 target/
-
 ```
 
 Sensitive credentials should also never be committed.
 
 Before every major commit:
 
-```bash
+``` bash
 
 git status
-
 ```
 
 Review exactly what Git is going to include.
 
----
+------------------------------------------------------------------------
 
-# 39. Git Development Workflow**
+# 39. Git Development Workflow
 
 Example feature workflow:
 
-```bash
+``` bash
 
 git checkout main
 
 git pull
 
 git checkout -b feature/example-feature
-
 ```
 
 Make changes.
 
 Check:
 
-```bash
+``` bash
 
 git status
-
 ```
 
 Stage:
 
-```bash
+``` bash
 
 git add .
-
 ```
 
 Commit:
 
-```bash
+``` bash
 
 git commit -m "Add example feature"
-
 ```
 
 Push:
 
-```bash
+``` bash
 
 git push origin feature/example-feature
-
 ```
 
 Then create a pull request and merge after validation.
 
----
+------------------------------------------------------------------------
 
-# 40. Current End-to-End Request Flow**
+# 40. Current End-to-End Request Flow
 
 For normal device operations:
 
-```text
+``` text
 
 Next.js
 
@@ -1773,12 +1839,11 @@ Next.js State
    |
 
 React UI Re-render
-
 ```
 
 For Java health checks:
 
-```text
+``` text
 
 Next.js
 
@@ -1837,12 +1902,11 @@ Next.js
    |
 
 Updated Dashboard
-
 ```
 
 For Python:
 
-```text
+``` text
 
 Python
 
@@ -1877,16 +1941,15 @@ Spring Boot
    |
 
 PostgreSQL
-
 ```
 
----
+------------------------------------------------------------------------
 
 # 41. Current Project Status
 
 ## Implemented and Validated
 
-```text
+``` text
 Java 21 / Spring Boot backend
 REST CRUD APIs
 Spring Data JPA / Hibernate
@@ -1910,16 +1973,32 @@ Persistence validation across pod recreation
 Spring Boot Actuator
 Readiness and liveness probes
 OpenShift troubleshooting and rollout operations
+Angular 22 standalone operations dashboard
+Angular services and dependency injection
+Angular HttpClient / RxJS Observable integration
+Angular SSR and hydration
+Angular device inventory and dashboard metrics
+Angular refresh and Java health-check integration
+Angular loading and error states
+Angular conditional status class binding
+Angular environment-based API configuration
+Angular production build validation
+Browser-to-OpenShift CORS integration
+MuleSoft Anypoint API Manager configuration
+Mule Gateway proxy deployment to CloudHub 2.0
+MuleSoft upstream routing to Red Hat OpenShift
+End-to-end gateway validation with HTTP 200
+Angular-to-MuleSoft-to-OpenShift integration
 ```
 
 ## Roadmap
 
-```text
+``` text
 Explicit CPU and memory requests/limits
 TLS-enabled OpenShift Route
 Next.js deployment to OpenShift
-Angular operations dashboard
-MuleSoft API Gateway / integration
+Angular deployment to OpenShift
+Additional MuleSoft API policies / governance
 ServiceNow integration
 Terraform / AWS infrastructure
 CI/CD with Jenkins / GitHub / GitLab
@@ -1927,820 +2006,1024 @@ Helm packaging
 Additional network platform integrations
 ```
 
----
-# 42. Docker and Red Hat OpenShift Deployment
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  \# 42. Docker and Red Hat OpenShift Deployment
 
-The backend and PostgreSQL database have been containerized and deployed to a Red Hat OpenShift Developer Sandbox. This phase moved the project from a local-only application to an orchestrated container environment with service discovery, external routing, persistent database storage, runtime configuration, and health management.
+  The backend and PostgreSQL database have been containerized and deployed to a Red Hat OpenShift Developer Sandbox. This phase moved the project from a local-only application to an orchestrated container environment with service discovery, external routing, persistent database storage, runtime configuration, and health management.
 
-## 42.1 Deployed Architecture
+  \## 42.1 Deployed Architecture
 
-```text
-External Client
-      |
-      v
+  `text External Client | v OpenShift Route | v network-api-service | v Spring Boot Pod | | JDBC v network-postgres Service | v PostgreSQL Pod | v PersistentVolumeClaim | v Persistent Storage`
+
+  The Spring Boot API is exposed externally through an OpenShift Route. PostgreSQL remains internal to the cluster and is reached through OpenShift service discovery using `network-postgres:5432`.
+
+  \## 42.2 Docker Installation and Verification
+
+  Docker Desktop was installed on the Apple Silicon development machine. Verify the installation with:
+
+  `bash docker --version docker info docker buildx version`
+
+  The local development machine is `arm64`, while the OpenShift worker environment used for this project requires an `amd64` compatible image. This difference became an important deployment consideration.
+
+  \## 42.3 Build the Spring Boot Artifact
+
+  Before building the container image:
+
+  `bash cd network-api ./mvnw clean package`
+
+  The Maven build compiles the application, executes tests, and creates the executable Spring Boot JAR under `target/`.
+
+  \## 42.4 Dockerfile
+
+  The backend container uses Java 21. The image also installs `iputils-ping` because the network health-check service executes the operating-system `ping` command.
+
+  \`\`\`dockerfile FROM eclipse-temurin:21-jre
+
+  USER root
+
+  RUN apt-get update\
+  && apt-get install -y iputils-ping\
+  && rm -rf /var/lib/apt/lists/\*
+
+  WORKDIR /app
+
+  COPY target/\*.jar app.jar
+
+  EXPOSE 8080
+
+  ENTRYPOINT \["java", "-jar", "app.jar"\] \`\`\`
+
+  Installing `ping` during image construction is different from running the application as root. OpenShift can still enforce its restricted security policy and run the application container with an assigned non-root UID.
+
+  \## 42.5 Local Docker Validation
+
+  The backend container was first validated locally against PostgreSQL running on the Mac:
+
+  `bash docker run --name network-api \ -p 8080:8080 \ -e DB_URL=jdbc:postgresql://host.docker.internal:5432/networkdb \ -e DB_USERNAME=<database-user> \ -e DB_PASSWORD=<database-password> \ network-api:1.0`
+
+  `host.docker.internal` is used because `localhost` inside a container refers to the container itself, not the Mac host.
+
+  Local Docker networking:
+
+  `text Spring Boot Container | v host.docker.internal:5432 | v PostgreSQL on Host`
+
+  \## 42.6 Publish the Container Image
+
+  Images are published to a container registry so OpenShift can pull them.
+
+  `bash docker login`
+
+  Because the development workstation is Apple Silicon and the target OpenShift environment requires AMD64, the deployable image is built explicitly for the target platform:
+
+  `bash docker buildx build \ --platform linux/amd64 \ -t <registry-user>/network-api:<version> \ --push .`
+
+  Verify the published image architecture:
+
+  `bash docker buildx imagetools inspect <registry-user>/network-api:<version>`
+
+  The current backend image documented after the Angular CORS integration is `rajrpandya/network-api:1.4`.
+
+  \## 42.7 OpenShift CLI
+
+  The OpenShift CLI was installed with Homebrew:
+
+  `bash brew install openshift-cli`
+
+  Verify:
+
+  `bash oc version`
+
+  After authenticating to the Red Hat Developer Sandbox, useful context commands include:
+
+  `bash oc whoami oc project oc get pods oc get deployments oc get services oc get routes`
+
+  Authentication tokens are intentionally not documented or committed to the repository.
+
+  \## 42.8 OpenShift Objects Used
+
+  The deployment uses the following OpenShift/Kubernetes resources:
+
+  `text Deployment Pod Service Route ConfigMap Secret PersistentVolumeClaim`
+
+  Their responsibilities are:
+
+  `text Deployment -> desired application version and replica state Pod        -> running container instance Service    -> stable internal network endpoint Route      -> external OpenShift endpoint ConfigMap  -> non-sensitive runtime configuration Secret     -> sensitive runtime configuration PVC        -> persistent storage request`
+
+  \## 42.9 Spring Boot Runtime Configuration
+
+  The application uses environment-driven database configuration:
+
+  `properties spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/networkdb} spring.datasource.username=${DB_USERNAME:networkapp} spring.datasource.password=${DB_PASSWORD} spring.jpa.hibernate.ddl-auto=update`
+
+  In OpenShift, the database URL is supplied by a ConfigMap while credentials are supplied through a Secret.
+
+  Example ConfigMap:
+
+  `yaml apiVersion: v1 kind: ConfigMap metadata: name: network-api-config data: DB_URL: jdbc:postgresql://network-postgres:5432/networkdb`
+
+  A public repository should not contain real secret values. A Secret can be created at deployment time:
+
+  `bash oc create secret generic network-api-secret \ --from-literal=DB_USERNAME=<database-user> \ --from-literal=DB_PASSWORD=<database-password>`
+
+  \## 42.10 Spring Boot Deployment
+
+  The Spring Boot Deployment currently runs one replica and obtains its database configuration from the ConfigMap and Secret.
+
+  `yaml apiVersion: apps/v1 kind: Deployment metadata: name: network-api spec: replicas: 1 selector: matchLabels: app: network-api template: metadata: labels: app: network-api spec: containers: - name: network-api image: rajrpandya/network-api:1.4 ports: - containerPort: 8080 env: - name: DB_URL valueFrom: configMapKeyRef: name: network-api-config key: DB_URL - name: DB_USERNAME valueFrom: secretKeyRef: name: network-api-secret key: DB_USERNAME - name: DB_PASSWORD valueFrom: secretKeyRef: name: network-api-secret key: DB_PASSWORD`
+
+  Apply manifests with:
+
+  `bash oc apply -f openshift/configmap.yaml oc apply -f openshift/deployment.yaml oc apply -f openshift/service.yaml oc apply -f openshift/route.yaml`
+
+  \## 42.11 Service and Route
+
+  The Service provides a stable endpoint for the Spring Boot pods:
+
+  `yaml apiVersion: v1 kind: Service metadata: name: network-api-service spec: selector: app: network-api ports: - protocol: TCP port: 8080 targetPort: 8080`
+
+  The OpenShift Route exposes that Service externally:
+
+  `yaml apiVersion: route.openshift.io/v1 kind: Route metadata: name: network-api-route spec: to: kind: Service name: network-api-service port: targetPort: 8080`
+
+  Runtime request flow:
+
+  `text Client | v OpenShift Route | v Service :8080 | v Spring Boot Pod :8080`
+
+  \## 42.12 PostgreSQL on OpenShift
+
+  PostgreSQL was moved from the local workstation into OpenShift. A Red Hat PostgreSQL image compatible with OpenShift's restricted security model was used.
+
+  The database is reachable internally through:
+
+  `text network-postgres:5432`
+
+  This illustrates an important difference from local Docker:
+
+  \`\`\`text Local Docker: Spring Boot container -\> host.docker.internal -\> PostgreSQL on Mac
+
+  OpenShift: Spring Boot Pod -\> network-postgres Service -\> PostgreSQL Pod \`\`\`
+
+  \## 42.13 Persistent Storage
+
+  A PersistentVolumeClaim was added so PostgreSQL data is not tied to the lifecycle of an individual pod.
+
+  `yaml apiVersion: v1 kind: PersistentVolumeClaim metadata: name: network-postgres-pvc spec: accessModes: - ReadWriteOnce resources: requests: storage: 1Gi`
+
+  The PVC is mounted into PostgreSQL at:
+
+  `text /var/lib/pgsql/data`
+
+  The volume was attached with:
+
+  `bash oc set volume deployment/network-postgres \ --add \ --name=postgres-data \ --type=pvc \ --claim-name=network-postgres-pvc \ --mount-path=/var/lib/pgsql/data`
+
+  Useful verification commands:
+
+  `bash oc get pvc oc describe pvc network-postgres-pvc oc set volume deployment/network-postgres`
+
+  The storage class used by the sandbox dynamically provisioned persistent storage. The PVC initially reported `WaitForFirstConsumer`, which is expected for storage classes that wait for a consuming pod before provisioning and binding the volume.
+
+  \## 42.14 Persistence Validation
+
+  Persistence was tested rather than assumed.
+
+  A device record was created in PostgreSQL. The PostgreSQL pod was then deliberately deleted:
+
+  `bash oc delete pod -l deployment=network-postgres`
+
+  OpenShift recreated the PostgreSQL pod automatically. The previously created device record was still available after restart, confirming that the data lived on persistent storage rather than in the deleted pod's ephemeral filesystem.
+
+  This test demonstrated both Kubernetes/OpenShift self-healing and persistent storage behavior.
+
+  \## 42.15 Spring Boot Actuator
+
+  Spring Boot Actuator was added to provide operational health endpoints.
+
+  Maven dependency:
+
+  `xml <dependency> <groupId>org.springframework.boot</groupId> <artifactId>spring-boot-starter-actuator</artifactId> </dependency>`
+
+  Application configuration:
+
+  `properties management.endpoints.web.exposure.include=health management.endpoint.health.probes.enabled=true`
+
+  Important endpoints:
+
+  `text /actuator/health /actuator/health/readiness /actuator/health/liveness`
+
+  Actuator belongs to the Spring Boot application. OpenShift calls these endpoints to make runtime decisions.
+
+  \## 42.16 Readiness and Liveness Probes
+
+  The OpenShift Deployment uses Actuator endpoints for container health management:
+
+  \`\`\`yaml readinessProbe: httpGet: path: /actuator/health/readiness port: 8080 initialDelaySeconds: 10 periodSeconds: 10 timeoutSeconds: 3 failureThreshold: 3
+
+  livenessProbe: httpGet: path: /actuator/health/liveness port: 8080 initialDelaySeconds: 20 periodSeconds: 20 timeoutSeconds: 3 failureThreshold: 3 \`\`\`
+
+  The distinction is important:
+
+  `text Readiness -> Should OpenShift send traffic to this pod? Liveness  -> Is the application alive, or should OpenShift restart it?`
+
+  Apply and verify:
+
+  `bash oc apply -f openshift/deployment.yaml oc get pods -w oc describe deployment network-api`
+
+  The deployed configuration was verified to show both readiness and liveness HTTP checks.
+
+  \## 42.17 Useful OpenShift Operations and Troubleshooting Commands
+
+  \`\`\`bash \# Workload status oc get pods oc get deployments oc get services oc get routes oc get pvc
+
+  \# Detailed diagnostics oc describe pod `<pod-name>`{=html} oc describe deployment network-api oc describe pvc network-postgres-pvc
+
+  \# Application logs oc logs `<pod-name>`{=html} oc logs -f `<pod-name>`{=html}
+
+  \# Execute inside a pod oc exec -it `<pod-name>`{=html} -- /bin/sh
+
+  \# Restart application oc rollout restart deployment/network-api
+
+  \# Watch rollout oc get pods -w
+
+  \# Update image oc set image deployment/network-api\
+  network-api=`<registry-user>`{=html}/network-api:`<version>`{=html}
+
+  \# Inspect configured volumes oc set volume deployment/network-postgres \`\`\`
+
+  \## 42.18 Deployment Challenges and Engineering Lessons
+
+  Several deployment issues were intentionally documented because troubleshooting is a critical part of operating enterprise platforms.
+
+  \### Apple Silicon ARM64 vs OpenShift AMD64
+
+  **Symptom**
+
+  OpenShift could not start the original image and reported that no compatible image was available for `amd64`.
+
+  **Root cause**
+
+  Docker initially built the image for the Apple Silicon workstation's ARM64 architecture, while the OpenShift runtime required AMD64.
+
+  **Resolution**
+
+  `bash docker buildx build \ --platform linux/amd64 \ -t <registry-user>/network-api:<version> \ --push .`
+
+  **Lesson**
+
+  Container portability still depends on CPU architecture unless the image is built for the target platform or published as a multi-architecture image.
+
+  \### PostgreSQL Image and OpenShift Security
+
+  **Symptom**
+
+  The initial PostgreSQL container failed under OpenShift's restricted security policy.
+
+  **Root cause**
+
+  The image expected permissions and user behavior that conflicted with OpenShift's dynamically assigned non-root UID security model.
+
+  **Resolution**
+
+  A Red Hat PostgreSQL image designed to operate correctly under OpenShift security constraints was used.
+
+  **Lesson**
+
+  An image that works in local Docker is not automatically suitable for a hardened Kubernetes/OpenShift environment.
+
+  \### `ping` Missing from the Java Runtime Image
+
+  **Symptom**
+
+  The Java health-check feature marked even `127.0.0.1` as OFFLINE inside the container.
+
+  Inspection showed that the `ping` executable was not installed.
+
+  **Root cause**
+
+  Minimal Java runtime images intentionally omit many operating-system utilities.
+
+  **Resolution**
+
+  `iputils-ping` was installed during Docker image construction.
+
+  **Lesson**
+
+  Container images contain only the dependencies explicitly included in the image. Application code that invokes operating-system tools must declare those runtime dependencies.
+
+  \### New Persistent Database Had No `devices` Table
+
+  **Symptom**
+
+  After moving PostgreSQL to new PVC-backed storage, API requests returned HTTP 500 and PostgreSQL reported:
+
+  `text relation "devices" does not exist`
+
+  **Root cause**
+
+  The new persistent volume represented a fresh database. The running Spring Boot pod had started before the replacement database and had not initialized the schema on that new database instance.
+
+  **Resolution**
+
+  `bash oc rollout restart deployment/network-api`
+
+  With Hibernate schema update enabled, Spring Boot initialized the required schema.
+
+  **Lesson**
+
+  Database lifecycle and application lifecycle are separate concerns. A healthy database process does not guarantee that the application schema exists.
+
+  \### PVC Initially Pending
+
+  **Symptom**
+
+  The PVC initially remained in `Pending` state and reported `WaitForFirstConsumer`.
+
+  **Root cause**
+
+  The storage class deferred volume provisioning until a pod actually requested the claim.
+
+  **Resolution**
+
+  The PVC was mounted into the PostgreSQL Deployment. The claim then bound successfully.
+
+  **Lesson**
+
+  A pending PVC is not automatically an error. StorageClass binding behavior and PVC events must be inspected before troubleshooting further.
+
+  \### Actuator Route Initially Appeared Unavailable
+
+  **Symptom**
+
+  Immediately after deploying the Actuator-enabled image, the health URL temporarily returned an OpenShift application-unavailable response.
+
+  **Diagnosis**
+
+  Pod status and application logs were checked instead of assuming the deployment had failed.
+
+  `bash oc get pods oc logs <network-api-pod>`
+
+  The logs confirmed Tomcat startup, PostgreSQL connectivity, and Actuator endpoint exposure. Once startup completed, `/actuator/health` returned successfully.
+
+  **Lesson**
+
+  During rolling deployment and application startup, external route availability may lag behind container creation. Pod state, readiness, and application logs provide better diagnostic evidence than a single external request.
+
+  \## 42.19 Key OpenShift Concepts Demonstrated
+
+  This deployment provides hands-on examples of:
+
+  `text Container image construction Image registries CPU architecture compatibility OpenShift Deployments Pods Services Routes ConfigMaps Secrets Internal DNS / service discovery PersistentVolumeClaims Dynamic storage provisioning Persistent database storage Restricted container security Rolling deployments Pod self-healing Spring Boot Actuator Readiness probes Liveness probes Application logging Runtime troubleshooting`
+  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# 43. Angular Network Operations Dashboard
+
+The Angular operations dashboard is now implemented and validated
+against the Spring Boot backend running on OpenShift.
+
+## 43.1 Angular Installation and Verification
+
+Angular CLI was installed globally:
+
+``` bash
+npm install -g @angular/cli
+```
+
+Verify the local development toolchain:
+
+``` bash
+node --version
+npm --version
+ng version
+```
+
+The development environment used for this implementation included
+Angular CLI 22.1.8, Node.js 26.8.2, and npm 11.19.1.
+
+## 43.2 Create the Angular Application
+
+From the repository root:
+
+``` bash
+ng new angular-dashboard
+```
+
+The application was created with CSS and server-side rendering / static
+generation enabled. SSR was intentionally retained.
+
+Start the development server:
+
+``` bash
+cd angular-dashboard
+ng serve
+```
+
+The dashboard is available at:
+
+``` text
+http://localhost:4200
+```
+
+Generated SSR-related files include:
+
+``` text
+src/main.server.ts
+src/server.ts
+src/app/app.config.server.ts
+src/app/app.routes.server.ts
+```
+
+## 43.3 Generate Angular Component, Model, and Service
+
+Generate the operations dashboard component:
+
+``` bash
+ng generate component dashboard
+```
+
+Generate the device TypeScript interface:
+
+``` bash
+ng generate interface models/device
+```
+
+Generate the Angular service:
+
+``` bash
+ng generate service services/device
+```
+
+The `Device` interface mirrors the Spring Boot API model:
+
+``` typescript
+export interface Device {
+  hostname: string;
+  ip: string;
+  status: string;
+  latency: number;
+  deviceType: string;
+}
+```
+
+## 43.4 Enable Angular HttpClient
+
+`HttpClient` is registered at application level using
+`provideHttpClient()` while preserving SSR hydration:
+
+``` typescript
+import { provideHttpClient } from '@angular/common/http';
+import { provideClientHydration } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideRouter(routes),
+    provideHttpClient(),
+    provideClientHydration()
+  ]
+};
+```
+
+## 43.5 Angular Service and Dependency Injection
+
+The Angular service encapsulates backend access rather than placing HTTP
+calls directly in the component.
+
+``` text
+Dashboard Component
+       |
+       v
+DeviceService
+       |
+       v
+Angular HttpClient
+       |
+       v
 OpenShift Route
-      |
-      v
-network-api-service
-      |
-      v
-Spring Boot Pod
-      |
-      | JDBC
-      v
-network-postgres Service
-      |
-      v
-PostgreSQL Pod
-      |
-      v
-PersistentVolumeClaim
-      |
-      v
-Persistent Storage
+       |
+       v
+Spring Boot REST API
 ```
 
-The Spring Boot API is exposed externally through an OpenShift Route. PostgreSQL remains internal to the cluster and is reached through OpenShift service discovery using `network-postgres:5432`.
+Modern Angular dependency injection is used with `inject()`:
 
-## 42.2 Docker Installation and Verification
-
-Docker Desktop was installed on the Apple Silicon development machine. Verify the installation with:
-
-```bash
-docker --version
-docker info
-docker buildx version
+``` typescript
+private readonly deviceService = inject(DeviceService);
 ```
 
-The local development machine is `arm64`, while the OpenShift worker environment used for this project requires an `amd64` compatible image. This difference became an important deployment consideration.
+This resolved a runtime issue where the service reference was undefined
+during component initialization.
 
-## 42.3 Build the Spring Boot Artifact
+## 43.6 Device Inventory and Dashboard Metrics
 
-Before building the container image:
+The dashboard retrieves devices and calculates:
 
-```bash
-cd network-api
-./mvnw clean package
+``` text
+Total Devices
+Online Devices
+Offline Devices
+Average Latency
 ```
 
-The Maven build compiles the application, executes tests, and creates the executable Spring Boot JAR under `target/`.
+Angular's built-in control flow renders one inventory row per device:
 
-## 42.4 Dockerfile
-
-The backend container uses Java 21. The image also installs `iputils-ping` because the network health-check service executes the operating-system `ping` command.
-
-```dockerfile
-FROM eclipse-temurin:21-jre
-
-USER root
-
-RUN apt-get update \
-    && apt-get install -y iputils-ping \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY target/*.jar app.jar
-
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+``` html
+@for (device of devices; track device.ip) {
+  <!-- device row -->
+}
 ```
 
-Installing `ping` during image construction is different from running the application as root. OpenShift can still enforce its restricted security policy and run the application container with an assigned non-root UID.
+`device.ip` is used as the tracking key because IP is the backend device
+identifier.
 
-## 42.5 Local Docker Validation
+## 43.7 Refresh Devices
 
-The backend container was first validated locally against PostgreSQL running on the Mac:
+The dashboard provides a refresh button using Angular event binding:
 
-```bash
-docker run --name network-api \
-  -p 8080:8080 \
-  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/networkdb \
-  -e DB_USERNAME=<database-user> \
-  -e DB_PASSWORD=<database-password> \
-  network-api:1.0
+``` html
+<button type="button" (click)="loadDevices()">
+  Refresh Devices
+</button>
 ```
 
-`host.docker.internal` is used because `localhost` inside a container refers to the container itself, not the Mac host.
+Flow:
 
-Local Docker networking:
-
-```text
-Spring Boot Container
-        |
-        v
-host.docker.internal:5432
-        |
-        v
-PostgreSQL on Host
+``` text
+User Click
+   |
+   v
+loadDevices()
+   |
+   v
+DeviceService.getDevices()
+   |
+   v
+GET /api/devices
+   |
+   v
+OpenShift Spring Boot API
+   |
+   v
+PostgreSQL
+   |
+   v
+Angular updates the table and metrics
 ```
 
-## 42.6 Publish the Container Image
+## 43.8 Run Java Health Check from Angular
 
-Images are published to a container registry so OpenShift can pull them.
+The Angular dashboard also invokes the existing Java multithreaded
+health-check endpoint:
 
-```bash
-docker login
+``` text
+GET /api/devices/health-check
 ```
 
-Because the development workstation is Apple Silicon and the target OpenShift environment requires AMD64, the deployable image is built explicitly for the target platform:
+The Angular service method calls the endpoint and the dashboard
+refreshes the returned device state.
 
-```bash
-docker buildx build \
-  --platform linux/amd64 \
-  -t <registry-user>/network-api:<version> \
-  --push .
-```
+End-to-end flow:
 
-Verify the published image architecture:
-
-```bash
-docker buildx imagetools inspect <registry-user>/network-api:<version>
-```
-
-The deployed application version documented at this stage is `rajrpandya/network-api:1.3`.
-
-## 42.7 OpenShift CLI
-
-The OpenShift CLI was installed with Homebrew:
-
-```bash
-brew install openshift-cli
-```
-
-Verify:
-
-```bash
-oc version
-```
-
-After authenticating to the Red Hat Developer Sandbox, useful context commands include:
-
-```bash
-oc whoami
-oc project
-oc get pods
-oc get deployments
-oc get services
-oc get routes
-```
-
-Authentication tokens are intentionally not documented or committed to the repository.
-
-## 42.8 OpenShift Objects Used
-
-The deployment uses the following OpenShift/Kubernetes resources:
-
-```text
-Deployment
-Pod
-Service
-Route
-ConfigMap
-Secret
-PersistentVolumeClaim
-```
-
-Their responsibilities are:
-
-```text
-Deployment -> desired application version and replica state
-Pod        -> running container instance
-Service    -> stable internal network endpoint
-Route      -> external OpenShift endpoint
-ConfigMap  -> non-sensitive runtime configuration
-Secret     -> sensitive runtime configuration
-PVC        -> persistent storage request
-```
-
-## 42.9 Spring Boot Runtime Configuration
-
-The application uses environment-driven database configuration:
-
-```properties
-spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/networkdb}
-spring.datasource.username=${DB_USERNAME:networkapp}
-spring.datasource.password=${DB_PASSWORD}
-spring.jpa.hibernate.ddl-auto=update
-```
-
-In OpenShift, the database URL is supplied by a ConfigMap while credentials are supplied through a Secret.
-
-Example ConfigMap:
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: network-api-config
-data:
-  DB_URL: jdbc:postgresql://network-postgres:5432/networkdb
-```
-
-A public repository should not contain real secret values. A Secret can be created at deployment time:
-
-```bash
-oc create secret generic network-api-secret \
-  --from-literal=DB_USERNAME=<database-user> \
-  --from-literal=DB_PASSWORD=<database-password>
-```
-
-## 42.10 Spring Boot Deployment
-
-The Spring Boot Deployment currently runs one replica and obtains its database configuration from the ConfigMap and Secret.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: network-api
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: network-api
-  template:
-    metadata:
-      labels:
-        app: network-api
-    spec:
-      containers:
-        - name: network-api
-          image: rajrpandya/network-api:1.3
-          ports:
-            - containerPort: 8080
-          env:
-            - name: DB_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: network-api-config
-                  key: DB_URL
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: network-api-secret
-                  key: DB_USERNAME
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: network-api-secret
-                  key: DB_PASSWORD
-```
-
-Apply manifests with:
-
-```bash
-oc apply -f openshift/configmap.yaml
-oc apply -f openshift/deployment.yaml
-oc apply -f openshift/service.yaml
-oc apply -f openshift/route.yaml
-```
-
-## 42.11 Service and Route
-
-The Service provides a stable endpoint for the Spring Boot pods:
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: network-api-service
-spec:
-  selector:
-    app: network-api
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
-```
-
-The OpenShift Route exposes that Service externally:
-
-```yaml
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: network-api-route
-spec:
-  to:
-    kind: Service
-    name: network-api-service
-  port:
-    targetPort: 8080
-```
-
-Runtime request flow:
-
-```text
-Client
-  |
-  v
+``` text
+Angular Dashboard
+       |
+       v
+DeviceService.runHealthCheck()
+       |
+       v
+GET /api/devices/health-check
+       |
+       v
 OpenShift Route
-  |
-  v
-Service :8080
-  |
-  v
-Spring Boot Pod :8080
+       |
+       v
+DeviceController
+       |
+       v
+DeviceHealthCheckService
+       |
+       v
+CompletableFuture + ThreadPoolTaskExecutor
+       |
+       v
+Concurrent Device Checks
+       |
+       v
+PostgreSQL
+       |
+       v
+Updated Angular Dashboard
 ```
 
-## 42.12 PostgreSQL on OpenShift
+## 43.9 Loading and Error States
 
-PostgreSQL was moved from the local workstation into OpenShift. A Red Hat PostgreSQL image compatible with OpenShift's restricted security model was used.
+The dashboard tracks request state with component properties such as:
 
-The database is reachable internally through:
-
-```text
-network-postgres:5432
+``` typescript
+isLoading = false;
+errorMessage = '';
 ```
 
-This illustrates an important difference from local Docker:
+Angular built-in conditional rendering is used for user-visible state:
 
-```text
-Local Docker:
-Spring Boot container -> host.docker.internal -> PostgreSQL on Mac
+``` html
+@if (isLoading) {
+  <p>Loading devices...</p>
+}
 
-OpenShift:
-Spring Boot Pod -> network-postgres Service -> PostgreSQL Pod
+@if (errorMessage) {
+  <p>{{ errorMessage }}</p>
+}
 ```
 
-## 42.13 Persistent Storage
+This avoids relying only on browser-console messages for runtime
+failures.
 
-A PersistentVolumeClaim was added so PostgreSQL data is not tied to the lifecycle of an individual pod.
+## 43.10 Conditional Status Styling
 
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: network-postgres-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+Angular class binding is used to assign status-specific CSS classes:
+
+``` html
+<span
+  [class.online]="device.status === 'ONLINE'"
+  [class.offline]="device.status === 'OFFLINE'"
+  [class.unknown]="device.status !== 'ONLINE' && device.status !== 'OFFLINE'"
+>
+  {{ device.status }}
+</span>
 ```
 
-The PVC is mounted into PostgreSQL at:
+This demonstrates conditional class binding based on application state.
 
-```text
-/var/lib/pgsql/data
+## 43.11 Angular Environment Configuration
+
+The backend URL was moved out of `DeviceService` into:
+
+``` text
+src/environments/environment.ts
 ```
 
-The volume was attached with:
+Example:
 
-```bash
-oc set volume deployment/network-postgres \
-  --add \
-  --name=postgres-data \
-  --type=pvc \
-  --claim-name=network-postgres-pvc \
-  --mount-path=/var/lib/pgsql/data
+``` typescript
+export const environment = {
+  production: false,
+  apiUrl:
+    'http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices'
+};
 ```
 
-Useful verification commands:
+`DeviceService` then consumes:
 
-```bash
-oc get pvc
-oc describe pvc network-postgres-pvc
-oc set volume deployment/network-postgres
+``` typescript
+private readonly apiUrl = environment.apiUrl;
 ```
 
-The storage class used by the sandbox dynamically provisioned persistent storage. The PVC initially reported `WaitForFirstConsumer`, which is expected for storage classes that wait for a consuming pod before provisioning and binding the volume.
+This separates environment-specific configuration from service logic.
 
-## 42.14 Persistence Validation
+## 43.12 Angular Production Build
 
-Persistence was tested rather than assumed.
+Stop `ng serve` with `Control + C` and run:
 
-A device record was created in PostgreSQL. The PostgreSQL pod was then deliberately deleted:
-
-```bash
-oc delete pod -l deployment=network-postgres
+``` bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+ng build
 ```
 
-OpenShift recreated the PostgreSQL pod automatically. The previously created device record was still available after restart, confirming that the data lived on persistent storage rather than in the deleted pod's ephemeral filesystem.
+The validated production build completed successfully and generated
+output under:
 
-This test demonstrated both Kubernetes/OpenShift self-healing and persistent storage behavior.
-
-## 42.15 Spring Boot Actuator
-
-Spring Boot Actuator was added to provide operational health endpoints.
-
-Maven dependency:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
+``` text
+angular-dashboard/dist/angular-dashboard
 ```
 
-Application configuration:
+The build produced both browser and server bundles because SSR is
+enabled.
 
-```properties
-management.endpoints.web.exposure.include=health
-management.endpoint.health.probes.enabled=true
-```
+A Node.js deprecation warning about `module.register()` appeared during
+the build, but it did not fail or invalidate the Angular build.
 
-Important endpoints:
+## 43.13 Angular and OpenShift CORS Troubleshooting
 
-```text
-/actuator/health
-/actuator/health/readiness
-/actuator/health/liveness
-```
-
-Actuator belongs to the Spring Boot application. OpenShift calls these endpoints to make runtime decisions.
-
-## 42.16 Readiness and Liveness Probes
-
-The OpenShift Deployment uses Actuator endpoints for container health management:
-
-```yaml
-readinessProbe:
-  httpGet:
-    path: /actuator/health/readiness
-    port: 8080
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-livenessProbe:
-  httpGet:
-    path: /actuator/health/liveness
-    port: 8080
-  initialDelaySeconds: 20
-  periodSeconds: 20
-  timeoutSeconds: 3
-  failureThreshold: 3
-```
-
-The distinction is important:
-
-```text
-Readiness -> Should OpenShift send traffic to this pod?
-Liveness  -> Is the application alive, or should OpenShift restart it?
-```
-
-Apply and verify:
-
-```bash
-oc apply -f openshift/deployment.yaml
-oc get pods -w
-oc describe deployment network-api
-```
-
-The deployed configuration was verified to show both readiness and liveness HTTP checks.
-
-## 42.17 Useful OpenShift Operations and Troubleshooting Commands
-
-```bash
-# Workload status
-oc get pods
-oc get deployments
-oc get services
-oc get routes
-oc get pvc
-
-# Detailed diagnostics
-oc describe pod <pod-name>
-oc describe deployment network-api
-oc describe pvc network-postgres-pvc
-
-# Application logs
-oc logs <pod-name>
-oc logs -f <pod-name>
-
-# Execute inside a pod
-oc exec -it <pod-name> -- /bin/sh
-
-# Restart application
-oc rollout restart deployment/network-api
-
-# Watch rollout
-oc get pods -w
-
-# Update image
-oc set image deployment/network-api \
-  network-api=<registry-user>/network-api:<version>
-
-# Inspect configured volumes
-oc set volume deployment/network-postgres
-```
-
-## 42.18 Deployment Challenges and Engineering Lessons
-
-Several deployment issues were intentionally documented because troubleshooting is a critical part of operating enterprise platforms.
-
-### Apple Silicon ARM64 vs OpenShift AMD64
+### Browser Returned HTTP 403 from OpenShift Route
 
 **Symptom**
 
-OpenShift could not start the original image and reported that no compatible image was available for `amd64`.
+Angular running on `http://localhost:4200` could load the UI but browser
+calls to the OpenShift Route failed with:
 
-**Root cause**
-
-Docker initially built the image for the Apple Silicon workstation's ARM64 architecture, while the OpenShift runtime required AMD64.
-
-**Resolution**
-
-```bash
-docker buildx build \
-  --platform linux/amd64 \
-  -t <registry-user>/network-api:<version> \
-  --push .
+``` text
+Origin http://localhost:4200 is not allowed by Access-Control-Allow-Origin.
+Status code: 403
 ```
-
-**Lesson**
-
-Container portability still depends on CPU architecture unless the image is built for the target platform or published as a multi-architecture image.
-
-### PostgreSQL Image and OpenShift Security
-
-**Symptom**
-
-The initial PostgreSQL container failed under OpenShift's restricted security policy.
-
-**Root cause**
-
-The image expected permissions and user behavior that conflicted with OpenShift's dynamically assigned non-root UID security model.
-
-**Resolution**
-
-A Red Hat PostgreSQL image designed to operate correctly under OpenShift security constraints was used.
-
-**Lesson**
-
-An image that works in local Docker is not automatically suitable for a hardened Kubernetes/OpenShift environment.
-
-### `ping` Missing from the Java Runtime Image
-
-**Symptom**
-
-The Java health-check feature marked even `127.0.0.1` as OFFLINE inside the container.
-
-Inspection showed that the `ping` executable was not installed.
-
-**Root cause**
-
-Minimal Java runtime images intentionally omit many operating-system utilities.
-
-**Resolution**
-
-`iputils-ping` was installed during Docker image construction.
-
-**Lesson**
-
-Container images contain only the dependencies explicitly included in the image. Application code that invokes operating-system tools must declare those runtime dependencies.
-
-### New Persistent Database Had No `devices` Table
-
-**Symptom**
-
-After moving PostgreSQL to new PVC-backed storage, API requests returned HTTP 500 and PostgreSQL reported:
-
-```text
-relation "devices" does not exist
-```
-
-**Root cause**
-
-The new persistent volume represented a fresh database. The running Spring Boot pod had started before the replacement database and had not initialized the schema on that new database instance.
-
-**Resolution**
-
-```bash
-oc rollout restart deployment/network-api
-```
-
-With Hibernate schema update enabled, Spring Boot initialized the required schema.
-
-**Lesson**
-
-Database lifecycle and application lifecycle are separate concerns. A healthy database process does not guarantee that the application schema exists.
-
-### PVC Initially Pending
-
-**Symptom**
-
-The PVC initially remained in `Pending` state and reported `WaitForFirstConsumer`.
-
-**Root cause**
-
-The storage class deferred volume provisioning until a pod actually requested the claim.
-
-**Resolution**
-
-The PVC was mounted into the PostgreSQL Deployment. The claim then bound successfully.
-
-**Lesson**
-
-A pending PVC is not automatically an error. StorageClass binding behavior and PVC events must be inspected before troubleshooting further.
-
-### Actuator Route Initially Appeared Unavailable
-
-**Symptom**
-
-Immediately after deploying the Actuator-enabled image, the health URL temporarily returned an OpenShift application-unavailable response.
 
 **Diagnosis**
 
-Pod status and application logs were checked instead of assuming the deployment had failed.
+The backend route was healthy because direct `curl` requests returned
+HTTP 200:
 
-```bash
-oc get pods
-oc logs <network-api-pod>
+``` bash
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices/health-check
 ```
 
-The logs confirmed Tomcat startup, PostgreSQL connectivity, and Actuator endpoint exposure. Once startup completed, `/actuator/health` returned successfully.
+This isolated the issue to browser CORS rather than OpenShift routing,
+Spring Boot startup, or PostgreSQL.
+
+**Resolution**
+
+Spring Boot CORS configuration was updated to allow both frontend
+development origins:
+
+``` java
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "http://localhost:4200"
+})
+```
+
+The backend was rebuilt and pushed as an AMD64 image:
+
+``` bash
+cd ~/Projects/enterprise-network-automation/network-api
+./mvnw clean package
+
+docker buildx build \
+  --platform linux/amd64 \
+  -t rajrpandya/network-api:1.4 \
+  --push .
+```
+
+The OpenShift manifest was updated from image `1.3` to `1.4`, then
+applied:
+
+``` bash
+oc apply -f openshift/deployment.yaml
+oc rollout status deployment/network-api
+```
+
+Verify the deployed image:
+
+``` bash
+oc get deployment network-api \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
 
 **Lesson**
 
-During rolling deployment and application startup, external route availability may lag behind container creation. Pod state, readiness, and application logs provide better diagnostic evidence than a single external request.
+`curl` does not enforce browser CORS rules. A backend can return HTTP
+200 to `curl` while a browser blocks the same endpoint. Testing both the
+server endpoint and the browser request helps identify the correct layer
+quickly.
 
-## 42.19 Key OpenShift Concepts Demonstrated
+## 43.14 Angular Development Cache Troubleshooting
 
-This deployment provides hands-on examples of:
+### UI Reverted or Did Not Reflect the Latest Template/Data
 
-```text
-Container image construction
-Image registries
-CPU architecture compatibility
-OpenShift Deployments
-Pods
+**Symptom**
+
+During development, a template or refreshed record appeared briefly or
+the application continued showing an earlier result.
+
+**Resolution**
+
+Stop Angular:
+
+``` text
+Control + C
+```
+
+Clear the Angular development cache:
+
+``` bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+rm -rf .angular/cache
+```
+
+Restart:
+
+``` bash
+ng serve
+```
+
+Then perform a browser hard refresh if needed.
+
+**Lesson**
+
+When live development output appears inconsistent with saved source,
+verify the source file first, then reset the framework development cache
+before changing working application logic.
+
+## 43.15 Debugging Angular API Calls
+
+Temporary browser-console logging was used to isolate UI, service, and
+HTTP behavior:
+
+``` typescript
+console.log('Refresh button clicked');
+console.log('DeviceService.getDevices() called');
+console.log('Health check response:', devices);
+```
+
+A useful diagnostic sequence is:
+
+``` text
+Button event works?
+       |
+       v
+Component method runs?
+       |
+       v
+Service method runs?
+       |
+       v
+Network request exists?
+       |
+       v
+HTTP response succeeds?
+       |
+       v
+Angular state updates?
+```
+
+The browser Network tab and `curl` were used together to distinguish
+application bugs from CORS and backend issues.
+
+## 43.16 Angular Concepts Demonstrated
+
+``` text
+Angular CLI
+Standalone components
+Component composition
+TypeScript interfaces
+Template interpolation
+Built-in @for control flow
+Built-in @if control flow
+Event binding
+Conditional class binding
 Services
-Routes
-ConfigMaps
-Secrets
-Internal DNS / service discovery
-PersistentVolumeClaims
-Dynamic storage provisioning
-Persistent database storage
-Restricted container security
-Rolling deployments
-Pod self-healing
-Spring Boot Actuator
-Readiness probes
-Liveness probes
-Application logging
+Dependency injection
+HttpClient
+RxJS Observables
+subscribe()
+OnInit lifecycle
+Loading and error state
+Environment configuration
+SSR / hydration
+REST API integration
+OpenShift Route integration
+Production builds
 Runtime troubleshooting
 ```
 
----
+------------------------------------------------------------------------
 
-# 43. Next Major Development Phases
+# 43.17 MuleSoft API Gateway and CloudHub 2.0 Integration
 
-The OpenShift backend and database deployment is now implemented. The next phases extend the platform toward a broader enterprise network automation architecture.
+MuleSoft is implemented as the API gateway layer in front of the Spring
+Boot API running on Red Hat OpenShift.
 
-## Phase 1: Angular Network Operations Dashboard**
+## 43.17.1 Architecture
 
-A separate Angular frontend will provide an operations-focused dashboard.
-
-Planned capabilities include:
-
-```text
-
-Total devices
-
-Online devices
-
-Offline devices
-
-Latency
-
-Health status
-
-Failed checks
-
-Network inventory
-
-```
-
-Architecture:
-
-```text
-
-Angular Component
-
-       |
-
-Angular Service
-
-       |
-
-HttpClient
-
-       |
-
+``` text
+Angular Dashboard / API Client
+             |
+             | HTTPS
+             v
+MuleSoft CloudHub 2.0
+network-api-proxy
+             |
+             | HTTP
+             v
+Red Hat OpenShift Route
+             |
+             v
 Spring Boot REST API
-
+             |
+             v
+JPA / Hibernate
+             |
+             v
+PostgreSQL
 ```
 
-This phase will demonstrate:
+## 43.17.2 MuleSoft Configuration
 
-```text
-
-Angular Components
-
-Services
-
-Dependency Injection
-
-HttpClient
-
-RxJS
-
-Observables
-
-Routing
-
-Forms
-
-Environment Configuration
-
+``` text
+Runtime:          Mule Gateway
+Proxy type:       Deploy a proxy application
+Target type:      CloudHub 2.0
+Target space:     Cloudhub-US-East-2
+Runtime version:  4.12.3 EDGE
+Java version:     17
+Proxy app name:   network-api-proxy
+API name:         Network Automation API
+API version:      v1
+Asset version:    1.0.0
+API type:         HTTP API
+Downstream:       HTTP / port 8081 / base path /
+Upstream:         Red Hat OpenShift application route
 ```
 
----
+The API Manager instance reached **Active** status. The CloudHub
+application reached **Running** status with one replica started.
 
-## Phase 2: MuleSoft API Gateway and Integration**
+## 43.17.3 MuleSoft Public Endpoint
 
-MuleSoft will be introduced as an enterprise API and integration layer.
-
-Planned architecture:
-
-```text
-
-Next.js
-
-    \\
-
-Angular
-
-      \\
-
-External Client
-
-        \\
-
-         v
-
-     MuleSoft
-
- API Gateway / Integration
-
-         |
-
-         v
-
-     Spring Boot
-
-         |
-
-         v
-
-     PostgreSQL
-
+``` text
+https://network-api-proxy-hkjv8j.5sc6y6-1.usa-e2.cloudhub.io
 ```
 
-MuleSoft will be used to explore:
+Device API through MuleSoft:
 
-```text
-
-Internal APIs
-
-External APIs
-
-Authentication
-
-Authorization
-
-API policies
-
-Rate limiting
-
-Transformation
-
-Routing
-
-Versioning
-
-Logging
-
-Monitoring
-
-Service integration
-
+``` text
+https://network-api-proxy-hkjv8j.5sc6y6-1.usa-e2.cloudhub.io/api/devices
 ```
 
-Future integrations may include ServiceNow, IPAM, DNS, DHCP, F5, and other network-management platforms.
+## 43.17.4 OpenShift Upstream
 
----
+``` text
+http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com
+```
 
-# 44. Long-Term Target Architecture**
+MuleSoft preserves the incoming API path and forwards the request to the
+OpenShift-hosted Spring Boot application.
 
-```text
+## 43.17.5 End-to-End Validation
+
+``` bash
+curl -i "https://network-api-proxy-hkjv8j.5sc6y6-1.usa-e2.cloudhub.io/api/devices"
+```
+
+Validated result:
+
+``` text
+HTTP/1.1 200
+content-type: application/json
+```
+
+Example gateway response:
+
+``` json
+[
+  {
+    "hostname": "persistent-router-01",
+    "ip": "127.0.0.1",
+    "status": "ONLINE",
+    "latency": 0,
+    "deviceType": "ROUTER"
+  }
+]
+```
+
+This proves:
+
+``` text
+Client
+ -> MuleSoft API Gateway
+ -> CloudHub 2.0 proxy
+ -> Red Hat OpenShift Route
+ -> Spring Boot REST API
+ -> Spring Data JPA / Hibernate
+ -> PostgreSQL
+```
+
+The Angular dashboard was subsequently validated through the MuleSoft
+endpoint.
+
+## 43.17.6 MuleSoft Concepts Demonstrated
+
+``` text
+Anypoint Platform
+API Manager
+HTTP API asset
+Mule Gateway
+API proxy
+CloudHub 2.0
+Downstream configuration
+Upstream configuration
+API registration
+Gateway routing
+Internal/external API integration pattern
+End-to-end API validation
+```
+
+## 43.17.7 Interview Explanation
+
+> I deployed a MuleSoft API Gateway proxy in CloudHub 2.0 in front of a
+> Spring Boot REST API running on Red Hat OpenShift. The gateway routes
+> client requests to the OpenShift backend, and I validated the
+> integration end to end by receiving HTTP 200 responses and live
+> PostgreSQL-backed device inventory through the MuleSoft endpoint.
+
+Future MuleSoft enhancements can add policies such as rate limiting,
+client application enforcement, authentication, and additional API
+governance.
+
+------------------------------------------------------------------------
+
+# 44. Long-Term Target Architecture
+
+``` text
 
                        Internal Users
 
@@ -2807,12 +3090,11 @@ Future integrations may include ServiceNow, IPAM, DNS, DHCP, F5, and other netwo
                        v
 
                    PostgreSQL
-
 ```
 
 Infrastructure and deployment will later include:
 
-```text
+``` text
 
 Red Hat OpenShift
 
@@ -2835,43 +3117,165 @@ MuleSoft
 Monitoring
 
 Secrets Management
-
 ```
 
----
+------------------------------------------------------------------------
 
-# 45. Purpose of This Repository**
+# 45. Quick Command Reference
 
-This repository is intended both as a working application and as a hands-on demonstration of enterprise engineering concepts including:
+This section summarizes commands used repeatedly during implementation
+and troubleshooting.
 
-* Full-stack application development
+## Backend
 
-* Java and Spring Boot architecture
+``` bash
+cd ~/Projects/enterprise-network-automation/network-api
+./mvnw clean test
+./mvnw clean package
+```
 
-* RESTful API design
+## Angular
 
-* Database persistence
+``` bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+ng serve
+rm -rf .angular/cache
+ng build
+```
 
-* ORM using JPA and Hibernate
+## Next.js
 
-* Java concurrency
+``` bash
+cd ~/Projects/enterprise-network-automation/nextjs-portal
+npm install
+npm run dev
+npm run build
+```
 
-* Network automation
+## Python
 
-* Python integration
+``` bash
+cd ~/Projects/enterprise-network-automation/python-automation
+source .venv/bin/activate
+python3 device_check.py
+```
 
-* React and Next.js
+## Docker
 
-* Enterprise API integration
+``` bash
+docker --version
+docker info
+docker buildx version
 
-* Container orchestration
+docker buildx build \
+  --platform linux/amd64 \
+  -t rajrpandya/network-api:<version> \
+  --push .
 
-* Cloud infrastructure
+docker buildx imagetools inspect rajrpandya/network-api:<version>
+```
 
-* Infrastructure as Code
+## OpenShift
 
-* CI/CD
+``` bash
+oc whoami
+oc project
+oc get pods
+oc get deployments
+oc get services
+oc get routes
+oc get pvc
+oc logs <pod-name>
+oc describe deployment network-api
+oc rollout status deployment/network-api
+oc rollout restart deployment/network-api
+oc apply -f openshift/deployment.yaml
+```
 
-* Observability
+Verify backend endpoints through the OpenShift Route:
 
-* Enterprise network operations
+``` bash
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices/health-check
+```
+
+## MuleSoft Gateway Validation
+
+``` bash
+curl -i "https://network-api-proxy-hkjv8j.5sc6y6-1.usa-e2.cloudhub.io/api/devices"
+```
+
+Direct OpenShift comparison:
+
+``` bash
+curl -i "http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices"
+```
+
+## Git
+
+``` bash
+git branch --show-current
+git status
+git add angular-dashboard
+git add network-api
+git add openshift/deployment.yaml
+git add .vscode/settings.json
+git commit -m "Add Angular network operations dashboard and OpenShift API integration"
+git push -u origin feature/angular-dashboard
+```
+
+Before pushing, verify that generated files, local environments, and
+credentials are not staged.
+
+Recommended ignore patterns include:
+
+``` text
+node_modules/
+.angular/
+dist/
+.env
+.env.local
+.venv/
+__pycache__/
+*.pyc
+target/
+```
+
+------------------------------------------------------------------------
+
+# 46. Purpose of This Repository
+
+This repository is intended both as a working application and as a
+hands-on demonstration of enterprise engineering concepts including:
+
+-   Full-stack application development
+
+-   Java and Spring Boot architecture
+
+-   RESTful API design
+
+-   Database persistence
+
+-   ORM using JPA and Hibernate
+
+-   Java concurrency
+
+-   Network automation
+
+-   Python integration
+
+-   React and Next.js
+
+-   Enterprise API integration
+
+-   Container orchestration
+
+-   Cloud infrastructure
+
+-   Infrastructure as Code
+
+-   CI/CD
+
+-   Observability
+
+-   Enterprise network operations
