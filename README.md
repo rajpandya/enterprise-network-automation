@@ -10,58 +10,30 @@ The project is being developed incrementally with an enterprise architecture in 
 
 The current implementation includes:
 
-* Java 21
-
-* Spring Boot
-
+* Java 21 / Spring Boot
 * Spring Web REST APIs
-
-* Spring Data JPA
-
-* Hibernate
-
+* Spring Data JPA / Hibernate
 * PostgreSQL
-
-* Java `CompletableFuture`
-
-* `ThreadPoolTaskExecutor`
-
+* Java `CompletableFuture` and `ThreadPoolTaskExecutor`
 * Python network automation
-
-* Next.js
-
-* React
-
-* TypeScript
-
+* Next.js / React / TypeScript self-service portal
+* Angular 22 operations dashboard
+* Angular `HttpClient`, RxJS, dependency injection, SSR and hydration
+* Docker / OCI containerization
+* Multi-architecture image builds with Docker Buildx
+* Red Hat OpenShift Deployment, Pod, Service, Route, ConfigMap, Secret, and PVC
+* PostgreSQL on OpenShift with persistent storage
+* Spring Boot Actuator readiness and liveness probes
 * Maven
-
 * Git and GitHub
 
-Future phases will add:
-
-* Docker / OCI containers
-
-* Red Hat OpenShift
-
-* OpenShift Deployment, Service, Route, ConfigMap, Secret, and PVC
-
-* Spring Boot Actuator readiness and liveness probes
-
-* Angular
+Next major phases will add:
 
 * MuleSoft API Gateway and integration
-
 * ServiceNow integration
-
-* Kubernetes and Helm
-
-* Terraform
-
-* AWS
-
-* CI/CD
-
+* Terraform / AWS infrastructure
+* CI/CD automation
+* Helm packaging
 * Additional network automation integrations
 
 ---
@@ -98,101 +70,88 @@ The long-term goal is to evolve the application into an enterprise network autom
 
 # 3. Current Architecture**
 
-The current application contains multiple layers.
+The project now has two web frontends, a reusable Spring Boot API, Java and Python automation, and an OpenShift-hosted backend/database environment.
 
 ```text
-
-                Next.js Web Application
-
-                         |
-
-                         |
-
-                      REST API
-
-                         |
-
-                         v
-
-                Spring Boot Backend
-
-                         |
-
-                  DeviceController
-
-                         |
-
-              \-----------------------
-
-              |                     |
-
-       DeviceService       DeviceHealthCheckService
-
-              |                     |
-
-              |              CompletableFuture
-
-              |                     |
-
-              |            ThreadPoolTaskExecutor
-
-              |                     |
-
-              |             Concurrent Device Checks
-
-              |                     |
-
-              \-----------+-----------
-
-                         |
-
-                  DeviceRepository
-
-                         |
-
-                  Spring Data JPA
-
-                         |
-
-                     Hibernate
-
-                         |
-
-                     PostgreSQL
-
+        +---------------------+       +---------------------+
+        |   Next.js Portal    |       | Angular Dashboard   |
+        |   localhost:3000    |       |   localhost:4200    |
+        +----------+----------+       +----------+----------+
+                   |                             |
+                   +-------------+---------------+
+                                 |
+                                 | REST
+                                 v
+                        OpenShift Route
+                                |
+                                v
+                     network-api-service
+                                |
+                                v
+                      Spring Boot API Pod
+                                |
+                         DeviceController
+                                |
+                +---------------+---------------+
+                |                               |
+         DeviceService              DeviceHealthCheckService
+                |                               |
+                |                     CompletableFuture
+                |                               |
+                |                    ThreadPoolTaskExecutor
+                |                               |
+                +---------------+---------------+
+                                |
+                        DeviceRepository
+                                |
+                        Spring Data JPA
+                                |
+                            Hibernate
+                                |
+                                v
+                     network-postgres Service
+                                |
+                                v
+                        PostgreSQL Pod
+                                |
+                                v
+                    PersistentVolumeClaim
 ```
 
-Python provides an additional automation client:
+Python provides an additional automation client that consumes the same REST API:
 
 ```text
-
 Python Automation
-
        |
-
        | GET / PATCH
-
        v
-
 Spring Boot REST API
-
        |
-
 DeviceController
-
        |
-
 DeviceService
-
        |
-
 DeviceRepository
-
        |
-
 PostgreSQL
-
 ```
+
+Current Angular/OpenShift request flow:
+
+```text
+Angular Dashboard
+       |
+       v
+OpenShift Route
+       |
+       v
+Spring Boot
+       |
+       v
+PostgreSQL
+```
+
+The next architectural step is to insert MuleSoft between the frontend/API consumers and the OpenShift Route.
 
 ---
 
@@ -232,17 +191,46 @@ http://localhost:3000
 
 ---
 
+## Angular Operations Dashboard**
+
+The Angular 22 dashboard provides an operations-focused view of device inventory and health data.
+
+Current capabilities include:
+
+* Display network inventory returned by Spring Boot
+* Calculate total, online, and offline device counts
+* Calculate average latency
+* Refresh inventory using Angular event binding
+* Invoke the Java multithreaded health-check endpoint
+* Display loading and error states
+* Apply conditional status classes
+* Use Angular services, dependency injection, `HttpClient`, RxJS, and Observables
+* Preserve SSR and hydration support
+* Use environment-based backend API configuration
+* Connect through the OpenShift Route
+* Produce a validated production build with `ng build`
+
+The Angular development server runs locally on:
+
+```text
+http://localhost:4200
+```
+
+The backend is currently accessed through the OpenShift Route rather than requiring Spring Boot to run locally.
+
+---
+
 ## Spring Boot Backend**
 
 Spring Boot provides the REST API and business logic.
 
-The backend currently runs locally on:
+The backend can run locally on:
 
 ```text
-
 http://localhost:8080
-
 ```
+
+The interview-ready deployment is also running in OpenShift and exposed through an OpenShift Route.
 
 Main layers:
 
@@ -278,7 +266,7 @@ Database
 
 * Web browsers
 
-* Future Angular applications
+* Angular operations dashboard
 
 * Future MuleSoft integrations
 
@@ -670,7 +658,7 @@ enterprise-network-automation/
 
 |-- angular-dashboard/
 
-|   Future Angular operations dashboard
+|   Angular network operations dashboard
 
 |
 
@@ -718,11 +706,17 @@ Python 3.14
 
 Node.js 26
 
-npm
+npm 11
+
+Angular CLI 22
 
 Maven
 
 PostgreSQL 17
+
+Docker Desktop / Docker Buildx
+
+OpenShift CLI (`oc`)
 
 Git
 
@@ -1588,15 +1582,25 @@ Because the ports are different, browsers treat these as different origins.
 
 Spring Boot therefore needs CORS configuration allowing the frontend origin.
 
-The current development configuration allows:
+The current development configuration allows both local web applications:
 
 ```text
-
-http://localhost:3000
-
+http://localhost:3000   # Next.js
+http://localhost:4200   # Angular
 ```
 
-Production CORS configuration will later be centralized and controlled through environment-specific settings.
+During Angular/OpenShift integration, the browser returned HTTP 403 because `http://localhost:4200` was not initially included in the Spring Boot CORS configuration. The controller was updated to allow both origins and a new backend container image was deployed to OpenShift.
+
+Example development configuration:
+
+```java
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "http://localhost:4200"
+})
+```
+
+For a production implementation, CORS should be centralized and driven by environment-specific configuration rather than controller-level hardcoding.
 
 ---
 
@@ -1910,6 +1914,17 @@ Persistence validation across pod recreation
 Spring Boot Actuator
 Readiness and liveness probes
 OpenShift troubleshooting and rollout operations
+Angular 22 standalone operations dashboard
+Angular services and dependency injection
+Angular HttpClient / RxJS Observable integration
+Angular SSR and hydration
+Angular device inventory and dashboard metrics
+Angular refresh and Java health-check integration
+Angular loading and error states
+Angular conditional status class binding
+Angular environment-based API configuration
+Angular production build validation
+Browser-to-OpenShift CORS integration
 ```
 
 ## Roadmap
@@ -1918,7 +1933,7 @@ OpenShift troubleshooting and rollout operations
 Explicit CPU and memory requests/limits
 TLS-enabled OpenShift Route
 Next.js deployment to OpenShift
-Angular operations dashboard
+Angular deployment to OpenShift
 MuleSoft API Gateway / integration
 ServiceNow integration
 Terraform / AWS infrastructure
@@ -2059,7 +2074,7 @@ Verify the published image architecture:
 docker buildx imagetools inspect <registry-user>/network-api:<version>
 ```
 
-The deployed application version documented at this stage is `rajrpandya/network-api:1.3`.
+The current backend image documented after the Angular CORS integration is `rajrpandya/network-api:1.4`.
 
 ## 42.7 OpenShift CLI
 
@@ -2167,7 +2182,7 @@ spec:
     spec:
       containers:
         - name: network-api
-          image: rajrpandya/network-api:1.3
+          image: rajrpandya/network-api:1.4
           ports:
             - containerPort: 8080
           env:
@@ -2590,149 +2605,511 @@ Runtime troubleshooting
 
 ---
 
-# 43. Next Major Development Phases
+# 43. Angular Network Operations Dashboard
 
-The OpenShift backend and database deployment is now implemented. The next phases extend the platform toward a broader enterprise network automation architecture.
+The Angular operations dashboard is now implemented and validated against the Spring Boot backend running on OpenShift.
 
-## Phase 1: Angular Network Operations Dashboard**
+## 43.1 Angular Installation and Verification
 
-A separate Angular frontend will provide an operations-focused dashboard.
+Angular CLI was installed globally:
 
-Planned capabilities include:
-
-```text
-
-Total devices
-
-Online devices
-
-Offline devices
-
-Latency
-
-Health status
-
-Failed checks
-
-Network inventory
-
+```bash
+npm install -g @angular/cli
 ```
 
-Architecture:
+Verify the local development toolchain:
+
+```bash
+node --version
+npm --version
+ng version
+```
+
+The development environment used for this implementation included Angular CLI 22.1.8, Node.js 26.8.2, and npm 11.19.1.
+
+## 43.2 Create the Angular Application
+
+From the repository root:
+
+```bash
+ng new angular-dashboard
+```
+
+The application was created with CSS and server-side rendering / static generation enabled. SSR was intentionally retained.
+
+Start the development server:
+
+```bash
+cd angular-dashboard
+ng serve
+```
+
+The dashboard is available at:
 
 ```text
+http://localhost:4200
+```
 
-Angular Component
+Generated SSR-related files include:
 
+```text
+src/main.server.ts
+src/server.ts
+src/app/app.config.server.ts
+src/app/app.routes.server.ts
+```
+
+## 43.3 Generate Angular Component, Model, and Service
+
+Generate the operations dashboard component:
+
+```bash
+ng generate component dashboard
+```
+
+Generate the device TypeScript interface:
+
+```bash
+ng generate interface models/device
+```
+
+Generate the Angular service:
+
+```bash
+ng generate service services/device
+```
+
+The `Device` interface mirrors the Spring Boot API model:
+
+```typescript
+export interface Device {
+  hostname: string;
+  ip: string;
+  status: string;
+  latency: number;
+  deviceType: string;
+}
+```
+
+## 43.4 Enable Angular HttpClient
+
+`HttpClient` is registered at application level using `provideHttpClient()` while preserving SSR hydration:
+
+```typescript
+import { provideHttpClient } from '@angular/common/http';
+import { provideClientHydration } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideRouter(routes),
+    provideHttpClient(),
+    provideClientHydration()
+  ]
+};
+```
+
+## 43.5 Angular Service and Dependency Injection
+
+The Angular service encapsulates backend access rather than placing HTTP calls directly in the component.
+
+```text
+Dashboard Component
        |
-
-Angular Service
-
+       v
+DeviceService
        |
-
-HttpClient
-
+       v
+Angular HttpClient
        |
-
+       v
+OpenShift Route
+       |
+       v
 Spring Boot REST API
-
 ```
 
-This phase will demonstrate:
+Modern Angular dependency injection is used with `inject()`:
+
+```typescript
+private readonly deviceService = inject(DeviceService);
+```
+
+This resolved a runtime issue where the service reference was undefined during component initialization.
+
+## 43.6 Device Inventory and Dashboard Metrics
+
+The dashboard retrieves devices and calculates:
 
 ```text
+Total Devices
+Online Devices
+Offline Devices
+Average Latency
+```
 
-Angular Components
+Angular's built-in control flow renders one inventory row per device:
 
+```html
+@for (device of devices; track device.ip) {
+  <!-- device row -->
+}
+```
+
+`device.ip` is used as the tracking key because IP is the backend device identifier.
+
+## 43.7 Refresh Devices
+
+The dashboard provides a refresh button using Angular event binding:
+
+```html
+<button type="button" (click)="loadDevices()">
+  Refresh Devices
+</button>
+```
+
+Flow:
+
+```text
+User Click
+   |
+   v
+loadDevices()
+   |
+   v
+DeviceService.getDevices()
+   |
+   v
+GET /api/devices
+   |
+   v
+OpenShift Spring Boot API
+   |
+   v
+PostgreSQL
+   |
+   v
+Angular updates the table and metrics
+```
+
+## 43.8 Run Java Health Check from Angular
+
+The Angular dashboard also invokes the existing Java multithreaded health-check endpoint:
+
+```text
+GET /api/devices/health-check
+```
+
+The Angular service method calls the endpoint and the dashboard refreshes the returned device state.
+
+End-to-end flow:
+
+```text
+Angular Dashboard
+       |
+       v
+DeviceService.runHealthCheck()
+       |
+       v
+GET /api/devices/health-check
+       |
+       v
+OpenShift Route
+       |
+       v
+DeviceController
+       |
+       v
+DeviceHealthCheckService
+       |
+       v
+CompletableFuture + ThreadPoolTaskExecutor
+       |
+       v
+Concurrent Device Checks
+       |
+       v
+PostgreSQL
+       |
+       v
+Updated Angular Dashboard
+```
+
+## 43.9 Loading and Error States
+
+The dashboard tracks request state with component properties such as:
+
+```typescript
+isLoading = false;
+errorMessage = '';
+```
+
+Angular built-in conditional rendering is used for user-visible state:
+
+```html
+@if (isLoading) {
+  <p>Loading devices...</p>
+}
+
+@if (errorMessage) {
+  <p>{{ errorMessage }}</p>
+}
+```
+
+This avoids relying only on browser-console messages for runtime failures.
+
+## 43.10 Conditional Status Styling
+
+Angular class binding is used to assign status-specific CSS classes:
+
+```html
+<span
+  [class.online]="device.status === 'ONLINE'"
+  [class.offline]="device.status === 'OFFLINE'"
+  [class.unknown]="device.status !== 'ONLINE' && device.status !== 'OFFLINE'"
+>
+  {{ device.status }}
+</span>
+```
+
+This demonstrates conditional class binding based on application state.
+
+## 43.11 Angular Environment Configuration
+
+The backend URL was moved out of `DeviceService` into:
+
+```text
+src/environments/environment.ts
+```
+
+Example:
+
+```typescript
+export const environment = {
+  production: false,
+  apiUrl:
+    'http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices'
+};
+```
+
+`DeviceService` then consumes:
+
+```typescript
+private readonly apiUrl = environment.apiUrl;
+```
+
+This separates environment-specific configuration from service logic.
+
+## 43.12 Angular Production Build
+
+Stop `ng serve` with `Control + C` and run:
+
+```bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+ng build
+```
+
+The validated production build completed successfully and generated output under:
+
+```text
+angular-dashboard/dist/angular-dashboard
+```
+
+The build produced both browser and server bundles because SSR is enabled.
+
+A Node.js deprecation warning about `module.register()` appeared during the build, but it did not fail or invalidate the Angular build.
+
+## 43.13 Angular and OpenShift CORS Troubleshooting
+
+### Browser Returned HTTP 403 from OpenShift Route
+
+**Symptom**
+
+Angular running on `http://localhost:4200` could load the UI but browser calls to the OpenShift Route failed with:
+
+```text
+Origin http://localhost:4200 is not allowed by Access-Control-Allow-Origin.
+Status code: 403
+```
+
+**Diagnosis**
+
+The backend route was healthy because direct `curl` requests returned HTTP 200:
+
+```bash
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices/health-check
+```
+
+This isolated the issue to browser CORS rather than OpenShift routing, Spring Boot startup, or PostgreSQL.
+
+**Resolution**
+
+Spring Boot CORS configuration was updated to allow both frontend development origins:
+
+```java
+@CrossOrigin(origins = {
+    "http://localhost:3000",
+    "http://localhost:4200"
+})
+```
+
+The backend was rebuilt and pushed as an AMD64 image:
+
+```bash
+cd ~/Projects/enterprise-network-automation/network-api
+./mvnw clean package
+
+docker buildx build \
+  --platform linux/amd64 \
+  -t rajrpandya/network-api:1.4 \
+  --push .
+```
+
+The OpenShift manifest was updated from image `1.3` to `1.4`, then applied:
+
+```bash
+oc apply -f openshift/deployment.yaml
+oc rollout status deployment/network-api
+```
+
+Verify the deployed image:
+
+```bash
+oc get deployment network-api \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+```
+
+**Lesson**
+
+`curl` does not enforce browser CORS rules. A backend can return HTTP 200 to `curl` while a browser blocks the same endpoint. Testing both the server endpoint and the browser request helps identify the correct layer quickly.
+
+## 43.14 Angular Development Cache Troubleshooting
+
+### UI Reverted or Did Not Reflect the Latest Template/Data
+
+**Symptom**
+
+During development, a template or refreshed record appeared briefly or the application continued showing an earlier result.
+
+**Resolution**
+
+Stop Angular:
+
+```text
+Control + C
+```
+
+Clear the Angular development cache:
+
+```bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+rm -rf .angular/cache
+```
+
+Restart:
+
+```bash
+ng serve
+```
+
+Then perform a browser hard refresh if needed.
+
+**Lesson**
+
+When live development output appears inconsistent with saved source, verify the source file first, then reset the framework development cache before changing working application logic.
+
+## 43.15 Debugging Angular API Calls
+
+Temporary browser-console logging was used to isolate UI, service, and HTTP behavior:
+
+```typescript
+console.log('Refresh button clicked');
+console.log('DeviceService.getDevices() called');
+console.log('Health check response:', devices);
+```
+
+A useful diagnostic sequence is:
+
+```text
+Button event works?
+       |
+       v
+Component method runs?
+       |
+       v
+Service method runs?
+       |
+       v
+Network request exists?
+       |
+       v
+HTTP response succeeds?
+       |
+       v
+Angular state updates?
+```
+
+The browser Network tab and `curl` were used together to distinguish application bugs from CORS and backend issues.
+
+## 43.16 Angular Concepts Demonstrated
+
+```text
+Angular CLI
+Standalone components
+Component composition
+TypeScript interfaces
+Template interpolation
+Built-in @for control flow
+Built-in @if control flow
+Event binding
+Conditional class binding
 Services
-
-Dependency Injection
-
+Dependency injection
 HttpClient
-
-RxJS
-
-Observables
-
-Routing
-
-Forms
-
-Environment Configuration
-
+RxJS Observables
+subscribe()
+OnInit lifecycle
+Loading and error state
+Environment configuration
+SSR / hydration
+REST API integration
+OpenShift Route integration
+Production builds
+Runtime troubleshooting
 ```
 
 ---
 
-## Phase 2: MuleSoft API Gateway and Integration**
+# 43.17 Next Major Phase: MuleSoft API Gateway and Integration
 
-MuleSoft will be introduced as an enterprise API and integration layer.
+MuleSoft is the next major implementation phase. The first example will intentionally stay small and interview-focused: route the device API through MuleSoft so the Angular dashboard no longer calls Spring Boot directly.
 
-Planned architecture:
-
-```text
-
-Next.js
-
-    \\
-
-Angular
-
-      \\
-
-External Client
-
-        \\
-
-         v
-
-     MuleSoft
-
- API Gateway / Integration
-
-         |
-
-         v
-
-     Spring Boot
-
-         |
-
-         v
-
-     PostgreSQL
-
-```
-
-MuleSoft will be used to explore:
+Target architecture:
 
 ```text
-
-Internal APIs
-
-External APIs
-
-Authentication
-
-Authorization
-
-API policies
-
-Rate limiting
-
-Transformation
-
-Routing
-
-Versioning
-
-Logging
-
-Monitoring
-
-Service integration
-
+Angular Dashboard
+       |
+       v
+MuleSoft API Gateway / Integration Layer
+       |
+       v
+OpenShift Route
+       |
+       v
+Spring Boot API
+       |
+       v
+PostgreSQL
 ```
+
+The first MuleSoft use case will focus on one endpoint such as:
+
+```text
+GET /api/devices
+```
+
+Potential gateway capabilities to demonstrate include API routing, a simple policy such as rate limiting or authentication, request logging, and internal/external API governance.
 
 Future integrations may include ServiceNow, IPAM, DNS, DHCP, F5, and other network-management platforms.
 
@@ -2840,7 +3217,115 @@ Secrets Management
 
 ---
 
-# 45. Purpose of This Repository**
+# 45. Quick Command Reference
+
+This section summarizes commands used repeatedly during implementation and troubleshooting.
+
+## Backend
+
+```bash
+cd ~/Projects/enterprise-network-automation/network-api
+./mvnw clean test
+./mvnw clean package
+```
+
+## Angular
+
+```bash
+cd ~/Projects/enterprise-network-automation/angular-dashboard
+ng serve
+rm -rf .angular/cache
+ng build
+```
+
+## Next.js
+
+```bash
+cd ~/Projects/enterprise-network-automation/nextjs-portal
+npm install
+npm run dev
+npm run build
+```
+
+## Python
+
+```bash
+cd ~/Projects/enterprise-network-automation/python-automation
+source .venv/bin/activate
+python3 device_check.py
+```
+
+## Docker
+
+```bash
+docker --version
+docker info
+docker buildx version
+
+docker buildx build \
+  --platform linux/amd64 \
+  -t rajrpandya/network-api:<version> \
+  --push .
+
+docker buildx imagetools inspect rajrpandya/network-api:<version>
+```
+
+## OpenShift
+
+```bash
+oc whoami
+oc project
+oc get pods
+oc get deployments
+oc get services
+oc get routes
+oc get pvc
+oc logs <pod-name>
+oc describe deployment network-api
+oc rollout status deployment/network-api
+oc rollout restart deployment/network-api
+oc apply -f openshift/deployment.yaml
+```
+
+Verify backend endpoints through the OpenShift Route:
+
+```bash
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices
+curl http://network-api-route-raj-r-pandya-dev.apps.rm1.0a51.p1.openshiftapps.com/api/devices/health-check
+```
+
+## Git
+
+```bash
+git branch --show-current
+git status
+git add angular-dashboard
+git add network-api
+git add openshift/deployment.yaml
+git add .vscode/settings.json
+git commit -m "Add Angular network operations dashboard and OpenShift API integration"
+git push -u origin feature/angular-dashboard
+```
+
+Before pushing, verify that generated files, local environments, and credentials are not staged.
+
+Recommended ignore patterns include:
+
+```text
+node_modules/
+.angular/
+dist/
+.env
+.env.local
+.venv/
+__pycache__/
+*.pyc
+target/
+```
+
+---
+
+# 46. Purpose of This Repository**
 
 This repository is intended both as a working application and as a hands-on demonstration of enterprise engineering concepts including:
 
